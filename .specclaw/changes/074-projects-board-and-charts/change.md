@@ -1,6 +1,6 @@
 # Projects: live charts, drag-and-drop board, custom lanes and release stage times
 
-**Change:** 070-projects-board-and-charts · **Created:** 2026-10-22
+**Change:** 074-projects-board-and-charts · **Created:** 2026-10-22
 **Lane:** Delivery · **Module:** `modules/delivery` (with contributions from `modules/finance`, `packages/core` and `apps/web`) · **Depends on:** [008](../archive/008-delivery-ingestion/change.md), [017](../archive/017-finance-contracts-billing/change.md), [029](../archive/029-workflows-scheduler/change.md), [041](../archive/041-delivery-mock-parity/change.md), [042](../archive/042-release-management/change.md), [044](../archive/044-release-and-region-hardening/change.md), [054](../archive/054-chat-first-everywhere/change.md)
 
 ## Problem
@@ -90,7 +90,7 @@ The proposal's open questions are settled as follows. Each can be changed by a l
 
 ## Mock Delta
 
-What changes on screen, and where to see it: [`070-projects-board-and-charts`](../../mock/index.html#070-projects-board-and-charts)
+What changes on screen, and where to see it: [`074-projects-board-and-charts`](../../mock/index.html#074-projects-board-and-charts)
 
 - The Contoso Portal board has:
   - a drag handle on each movable card;
