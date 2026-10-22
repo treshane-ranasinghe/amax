@@ -11,6 +11,7 @@ _1 unnumbered change · run `/specclaw-extras:renumber` to order them_
 - 🔀 **067-glob-security-bump** — pr raised | 2/2 tasks (100%) | 0 failed | PR #96 merged
 - 🔀 **068-overview-dashboard** — pr raised | 6/6 tasks (100%) | 0 failed | PR #97 merged
 - 🔍 **069-chat-tool-schema-hotfix** — verify done | 3/3 tasks (100%) | 0 failed
+- 🔨 **070-projects-board-and-charts** — build in progress | 0/7 tasks (0%) | 0 failed
 
 ## Pending Proposals
 
@@ -89,6 +90,6 @@ _1 unnumbered change · run `/specclaw-extras:renumber` to order them_
 
 ## Stats
 
-- **Total changes:** 67
-- **Active:** 3
+- **Total changes:** 68
+- **Active:** 4
 - **Completed:** 64
