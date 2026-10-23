@@ -1,9 +1,19 @@
 {
   "change": "075-release-map-new-release",
-  "phase": "tasks",
+  "phase": "build",
   "branch": "specclaw/075-release-map-new-release",
   "phases": {
-    "proposal": {"status":"approved","at":"2026-10-23T09:30:00Z"},
-    "tasks": {"status":"done","at":"2026-10-23T09:45:00Z"}
+    "proposal": {
+      "status": "approved",
+      "at": "2026-10-23T09:30:00Z"
+    },
+    "tasks": {
+      "status": "done",
+      "at": "2026-10-23T09:45:00Z"
+    },
+    "build": {
+      "status": "done",
+      "at": "2026-10-23T09:16:00Z"
+    }
   }
 }

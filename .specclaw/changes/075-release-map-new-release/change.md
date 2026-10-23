@@ -85,3 +85,5 @@ What changes on screen, and where to see it: [`075-release-map-new-release`](../
   Depends: T1, T2
 
 ## Verify
+
+Quality: not_run (specclaw-quality-scan needs Python, which this machine lacks)
