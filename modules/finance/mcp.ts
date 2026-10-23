@@ -7,6 +7,7 @@ import { getContract, getInvoice, listContracts } from "./server/detail";
 import { ctxFor } from "./server/read";
 import { addMilestone, createContract, setFxRate } from "./server/setup";
 import { getFinancials } from "./server/view";
+import { revenueForClient } from "./server/revenue";
 
 type Src = "mcp" | "chat";
 const tool = <I extends z.ZodType>(t: Omit<McpToolDef, "input" | "run"> & { input: I; run: (v: Viewer, input: z.infer<I>, source: Src) => Promise<unknown> }) => t as unknown as McpToolDef;
@@ -35,6 +36,8 @@ export const mcpTools: McpToolDef[] = [
     input: recordPayment.spec.input, service: recordPayment, run: pass(recordPayment) }),
   tool({ ...write("finance:invoice:issue"), name: "issue_credit_note", description: "Issue a credit note against an invoice for an amount before tax; tax is credited in proportion. It reduces invoiced and open amounts.",
     input: issueCreditNote.spec.input, service: issueCreditNote, run: pass(issueCreditNote) }),
+  tool({ ...read, pin: "view", name: "get_revenue_by_project", description: "Each active project's contract value, optionally for one client, in the reporting currency at stored rates (the Projects screen's Revenue by project). Contracts in a currency with no stored rate are listed under leftOut, not added in.",
+    input: z.object({ client: z.string().optional() }), run: (v, a) => revenueForClient(v, a.client) }),
 ];
 
 export async function search(viewer: Viewer, query: string): Promise<SearchHit[]> {

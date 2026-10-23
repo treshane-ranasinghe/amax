@@ -73,4 +73,13 @@ export const PROJECT_SECTIONS = [
 ] as const;
 export type ProjectSection = (typeof PROJECT_SECTIONS)[number]["path"];
 
+/**
+ * 074 AC-7–AC-11: the Projects page's "Revenue by project", served by Finance through this slot. Values
+ * are in `currency` (Finance's target); contracts with no stored rate are `leftOut`, never added in.
+ * `access` false means the viewer may read no Finance data.
+ */
+export const REVENUE_SLOT = "delivery.revenue-by-project";
+export type RevenueQuery = { projectIds: string[] };
+export type RevenueByProject = { access: boolean; currency: string | null; parts: { projectId: string; value: number }[]; leftOut: { contractId: string; projectId: string; currency: string }[] };
+
 export const projectHref = (key: string, section: ProjectSection = "") => `/delivery/p/${encodeURIComponent(key)}${section ? `/${section}` : ""}`;

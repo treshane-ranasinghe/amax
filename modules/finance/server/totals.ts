@@ -7,7 +7,7 @@ export type Bucket = { label: string; amount: string };
 export type Ageing = { open: string; buckets: Bucket[] };
 export type EntityTotal = { legalEntityId: string; entityName: string; baseCurrency: string; invoiced: string };
 
-const fx = (cur: SQL, target: string, on: string) => sql`(case when ${cur} = ${target} then 1 else coalesce(
+export const fx = (cur: SQL, target: string, on: string) => sql`(case when ${cur} = ${target} then 1 else coalesce(
   (select r.rate from finance.fx_rate r where r.from_currency = ${cur} and r.to_currency = ${target} and r.as_of <= ${on} order by r.as_of desc limit 1),
   (select 1 / r.rate from finance.fx_rate r where r.from_currency = ${target} and r.to_currency = ${cur} and r.as_of <= ${on} order by r.as_of desc limit 1)) end)`;
 const within = (ids: string[], col: SQL) => (ids.length ? sql`${col} in (${sql.join(ids.map((i) => sql`${i}::uuid`), sql`, `)})` : sql`false`);

@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { createDb, withTenant, type Db } from "@amax/db";
 import { loadEnv } from "@amax/core/env";
-import { auditExportJob, configureRuntime, pruneKeysJob, registryFrom, storageFromEnv } from "@amax/core/server";
+import { auditExportJob, configureRuntime, configureSlots, pruneKeysJob, registryFrom, storageFromEnv } from "@amax/core/server";
 import { apiPlatform } from "@amax/api/module";
 import { configureSecrets, kmsFromEnv, secretsSweepJob } from "@amax/core/secrets";
 import { privacyGrants, setPrivacySources } from "@amax/core/privacy";
@@ -48,6 +48,8 @@ export function getDb(): Db | null {
     const db = cache.amaxDb;
     configureAgents({ tools: () => toolRegistry(), workflows: () => workflowsRegistry(), viewerFor: (tenantId, userId) => withTenant(db, tenantId, (tx) => viewerForUser(tx, tenantId, userId)) });
     setPrivacySources(privacySources(installed));
+    // 074: data one module serves into another's screen (Finance's contract values on Projects).
+    configureSlots(installed);
     setViewerScopeResolvers(installed.flatMap((m) => (m.viewerScopes ? [m.viewerScopes] : [])));
     installAuthorizer();
     // 035 AC-5: limited requests are counted for the API and webhooks screen.

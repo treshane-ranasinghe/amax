@@ -3,6 +3,8 @@ import { EVENTS, type ContractCreated, type CreditNoteIssued, type InvoiceDrafte
 import { financeFixtures } from "./fixtures";
 import { mcpTools, search } from "./mcp";
 import { financeOverview } from "./server/overview";
+import { revenueByProject } from "./server/revenue";
+import { REVENUE_SLOT } from "@amax/delivery/contracts";
 import { draftAgent, invoiceDraft, releaseAgent, timeAgent } from "./suggestions";
 import { FinancePage } from "./ui/FinancePage";
 
@@ -22,6 +24,7 @@ export default defineModule({
   routes: [{ path: "", title: "Financials", component: FinancePage }],
   mcpTools,
   overview: financeOverview as never,
+  slots: { [REVENUE_SLOT]: revenueByProject as never },
   search: search as never,
   retention: [
     { table: "finance.contract", label: "Who created each contract", subject: ["created_by"], entity: "legal_entity_id", fields: ["created_by"], class: "personal", period: "P7Y", start: { at: ["created_at"] }, action: "anonymise" },

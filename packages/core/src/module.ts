@@ -231,6 +231,8 @@ export type ModuleManifest = {
   activity?: (viewer: never, limit: number) => Promise<ActivityItem[]>;
   /** Contributes tickets, waiting decisions and panels to the Overview (068). Return only what the viewer may read. */
   overview?: (viewer: never, query: OverviewQuery) => Promise<OverviewPart>;
+  /** Data this module serves into another module's screen, by slot name (074): the screen's module declares the types in its contracts.ts. */
+  slots?: Record<string, (viewer: never, query: never) => Promise<unknown>>;
   /** Verified inbound webhooks this module acts on (008: GitHub and Azure DevOps pushes). */
   inbound?: { providers: readonly string[]; handle: (e: InboundEvent) => Promise<void> };
   /** Contributes results to the built-in `search` tool. */
