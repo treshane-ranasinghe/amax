@@ -80,7 +80,7 @@ What changes on screen, and where to see it: [`075-release-map-new-release`](../
   Files: modules/delivery/ui/ReleasesPage.tsx, modules/delivery/ui/delivery.css, modules/delivery/fixtures/index.ts, modules/delivery/tests/ui-logic.test.ts
 - [x] `T2` — amax adds a release from a typed chat message: `create_release` takes the project by key or name and the proposals as optional, asks only for what's missing, takes the project from the Releases screen when not named, refuses without permission; the scripted model's rule for "add release <version> to <project> [with …]"; unit tests (AC-1–AC-4)
   Files: modules/delivery/mcp.ts, modules/delivery/chat.ts, modules/delivery/server/services.ts, packages/ai/src/scripted-writes.ts, apps/web/components/chat/Chat.tsx, modules/delivery/tests/releases.test.ts, packages/ai/tests/scripted-writes.test.ts
-- [ ] `T3` — e2e: type the request in chat on the Releases page, confirm, see the new row on the map, then record its Dev deployment and see it become an in-flight row; module README; lint, typecheck, `check:graph` and the delivery and ai suites (AC-4, AC-8, AC-12)
+- [x] `T3` — e2e: type the request in chat on the Releases page, confirm, see the new row on the map, then record its Dev deployment and see it become an in-flight row; module README; lint, typecheck, `check:graph` and the delivery and ai suites (AC-4, AC-8, AC-12)
   Files: apps/web/tests/e2e/release-map.spec.ts, modules/delivery/README.md
   Depends: T1, T2
 

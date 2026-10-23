@@ -59,3 +59,27 @@ test("074 AC-27 the station details open from the keyboard and close with Escape
   await expect(page.getByRole("tooltip")).toHaveCount(0);
   expect(await axe(page)).toEqual([]);
 });
+
+test("075 AC-12 amax adds a release from a typed message and it is on the map before its first deployment", async ({ page }) => {
+  // Scenario: on Northwind Kiosk's Releases section, Maya types "add release v1.1.0 to NWK with
+  // NWK-001" and confirms. The map shows v1.1.0 not deployed yet; once amax records its Dev
+  // deployment, the same row moves on to Dev instead of a second row appearing.
+  await signIn(page, "maya@lumenlabs.test", "/delivery/p/NWK/releases");
+  const say = async (text: string) => {
+    await page.getByRole("button", { name: "Ask amax" }).click();
+    await page.getByLabel("Message amax").fill(text);
+    await page.getByRole("button", { name: "Send", exact: true }).click();
+    const confirm = page.getByRole("group", { name: /^Confirm:/ }).last();
+    await confirm.getByRole("button", { name: "Add it" }).click();
+    await expect(confirm).toContainText("Done:");
+    await page.reload();
+  };
+  const map = card(page, "Release map").getByRole("group");
+  await say("add release v1.1.0 to NWK with NWK-001");
+  await expect(map).toHaveAttribute("aria-label", /Northwind Kiosk v1\.1\.0: not deployed yet/);
+  await expect(page.getByRole("button", { name: /^Northwind Kiosk v1\.1\.0, Dev · Not deployed yet/ })).toBeVisible();
+  await say("record a deployment of NWK v1.1.0 to Dev");
+  await expect(map).toHaveAttribute("aria-label", /Northwind Kiosk v1\.1\.0: In Dev since/);
+  await expect(page.getByRole("button", { name: /^Northwind Kiosk v1\.1\.0, Dev · Deployed/ })).toHaveCount(1);
+  expect(await axe(page)).toEqual([]);
+});

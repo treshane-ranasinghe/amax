@@ -1,4 +1,4 @@
-# delivery (changes 007, 008, 039, 041, 042, 044, 045, 074)
+# delivery (changes 007, 008, 039, 041, 042, 044, 045, 074, 075)
 
 Projects, each project's board of specclaw proposals, and releases moving through each project's own environments. "Released" means a release reached the project's Prod environment; a project may have none.
 
@@ -24,5 +24,6 @@ Projects, each project's board of specclaw proposals, and releases moving throug
 - **Charts (041, 074):** "Tasks done per week" counts Done from `task.done_at` and Planned from the weekly snapshots (a past week with no snapshot is a gap; the current week is worked out live); "Revenue by project" is Finance's contract value per project in its reporting currency, with a note for contracts in a currency with no stored rate; "Shipped to Prod per week" counts `proposal.released_at`, the source of "Released this month". The fixtures follow fixtures.md except that series: the mock's W41 4 and W42 6 contradict its own 5 released this month, so the app shows W41 1 and W42 0. The Oct 6 "Login hotfix" is FLT's (release FLT v1.7.3), not an HRI proposal without a release: every released proposal has a release that reached Prod.
 - **Board (074):** cards drag between lanes by pointer, touch or keyboard (Space, arrows, Space). A drop opens chat with `Move <key> to <lane>` filled in; chat confirming `move_proposal` keeps the card there, cancelling puts it back. A synced card moves only between lanes of its phase, and nothing moves into Released. Lane changes need `delivery:board:edit` (PM on a managed project, Admin).
 - **Release map (074):** each station shows, on hover, focus or tap: its status, first live deployment, the time since the previous reached station, how long the release has sat there, who recorded it, the note and repeat deployments (`list_releases` stages carry `firstAt`, `deploymentId`, `count` and `recordedBy`).
+- **Releases from chat (075):** people add a release by asking amax ("add release v2.5.0 to CON with CON-013"); there is no button on the map. Chat sends the screen path, so on a project's Releases section amax takes that project when none is named. A release not deployed anywhere is on the Active map while it was created within 45 days, as a grey row with a "Not deployed yet · added <date>" pill; its first deployment turns it into a normal row.
 - **Today:** date windows use the tenant's `delivery.clock_pin` row when there is one (the e2e tenant pins Oct 16, 2026), else the real date.
 - **Tests:** `pnpm --filter @amax/delivery test` (DB tests need `DATABASE_MIGRATE_URL`)
