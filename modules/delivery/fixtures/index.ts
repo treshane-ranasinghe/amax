@@ -77,8 +77,11 @@ const RELEASES: { project: string; version: string; deployments: [string, string
 const userId = async (tx: Tx, key: string) =>
   ((await tx.execute(sql`select id from auth.user where email = ${`${key}@lumenlabs.test`}`))[0]?.id as string | undefined) ?? null;
 
-// Tasks done per week, W35-W42 2026 (Mondays), the portfolio roll-up: the mock's chart.
+// Tasks done per week, W35-W42 2026 (Mondays Aug 24 to Oct 12): the mock's chart. 074: Done is real
+// tasks closed in each week, Planned the weekly snapshots, split across the three projects.
 const WEEKLY = { planned: [28, 30, 30, 32, 32, 34, 34, 36], done: [24, 29, 31, 27, 33, 35, 30, 38] };
+const WEEK_MONDAYS = WEEKLY.done.map((_, i) => new Date(Date.UTC(2026, 7, 24 + i * 7)));
+const SHARE: Record<string, number> = { CON: 0.4, FLT: 0.35 };
 
 /** Pins a tenant's "today" (delivery.clock_pin) for date windows: the e2e tenant uses fixtures.md's Oct 16, 2026. */
 export const pinToday = (tx: Tx, tenantId: string, day: string) =>
@@ -158,8 +161,30 @@ export const deliveryFixtures: FixtureSeed = async ({ tx, tenantId, shared }) =>
     await tx.execute(sql`insert into delivery.sync_push (tenant_id, project_id, at, actor_id, actor_kind, repo_url, ref, sha, committed_at, outcome, updated, unchanged, reason)
       values (${tenantId}, ${ids.CON}, ${p.at}, ${p.who ? `user:${p.who}` : "user:fixture"}, 'user', ${p.repo}, 'main', ${p.sha}, ${p.at}, ${p.outcome}, ${p.updated}, ${p.unchanged}, ${p.reason})`);
   }
-  for (let i = 0; i < 8; i++) {
-    const week = new Date(Date.UTC(2026, 7, 24 + i * 7)).toISOString().slice(0, 10);
-    await tx.execute(sql`insert into delivery.weekly_stat (tenant_id, project_id, week, planned, done) values (${tenantId}, null, ${week}, ${WEEKLY.planned[i]}, ${WEEKLY.done[i]}) on conflict do nothing`);
-  }
+  await seedWeekly(tx, tenantId, ids);
 };
+
+/**
+ * 074 AC-31: the chart's mock numbers from real records. Each week gets as many done tasks as it
+ * still lacks after the tasks above (closed by "fixtures", so no person is credited with them), on
+ * the fillers in flight, up to Fri Oct 16 (the pinned day). Planned is one snapshot row per project.
+ */
+async function seedWeekly(tx: Tx, tenantId: string, ids: Record<string, string>) {
+  const [{ n: seeded }] = await tx.execute(sql`select count(*)::int as n from delivery.task where done_by = 'fixtures'`);
+  if (Number(seeded)) return;
+  const hosts = await tx.execute(sql`select id from delivery.proposal where phase in ('building', 'verified') and key not like 'CON-%' order by key`);
+  let ref = 100;
+  for (const [i, monday] of WEEK_MONDAYS.entries()) {
+    const end = new Date(monday.getTime() + 7 * 86_400_000);
+    const [{ n }] = await tx.execute(sql`select count(*)::int as n from delivery.task where done and done_at >= ${monday.toISOString()} and done_at < ${end.toISOString()}`);
+    for (let k = 0; k < WEEKLY.done[i] - Number(n); k++) {
+      const at = new Date(monday.getTime() + (k % 5) * 86_400_000 + 9 * 3_600_000);
+      await tx.execute(sql`insert into delivery.task (tenant_id, proposal_id, ref, title, done, done_at, done_by)
+        values (${tenantId}, ${hosts[k % hosts.length].id}, ${`T${ref++}`}, ${`Fixture task, week ${i + 35}`}, true, ${at.toISOString()}, 'fixtures')`);
+    }
+    const week = monday.toISOString().slice(0, 10);
+    const con = Math.round(WEEKLY.planned[i] * SHARE.CON), flt = Math.round(WEEKLY.planned[i] * SHARE.FLT);
+    for (const [key, planned] of [["CON", con], ["FLT", flt], ["HRI", WEEKLY.planned[i] - con - flt]] as const)
+      await tx.execute(sql`insert into delivery.weekly_stat (tenant_id, project_id, week, planned) values (${tenantId}, ${ids[key]}, ${week}, ${planned}) on conflict do nothing`);
+  }
+}

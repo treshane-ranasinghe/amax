@@ -12,7 +12,8 @@ import manifest from "../module";
 import { EVENTS, getProjectRef, listProjectRefs, managedProjectIds, PHASES } from "../contracts";
 import { mcpTools } from "../mcp";
 import { ctxFor } from "../server/context";
-import { getProject, listProjects, listProposals, listReleases, phaseCounts, shippedPerWeek, today, weeklyThroughput } from "../server/queries";
+import { getProject, listProjects, listProposals, listReleases, phaseCounts, shippedPerWeek, today } from "../server/queries";
+import { tasksPerWeek } from "../server/weekly";
 import { moveProposal, recordDeployment } from "../server/services";
 import { nextStep, onActiveMap } from "../ui/ReleasesPage";
 
@@ -104,7 +105,7 @@ describe.skipIf(!hasDb)("delivery against Postgres", () => {
     expect((await listProposals(maya, { projectKey: "CON", phase: "released" })).map((p) => [p.key, p.release])).toEqual([["CON-009", "v2.3.0"]]);
   });
 
-  it("weekly charts: shipped counts released_at like 'Released this month'; the portfolio row is not double counted; missing weeks are null (review round 1)", async () => {
+  it("weekly charts: shipped counts released_at like 'Released this month'; tasks per week sum the projects' records (074)", async () => {
     const now = new Date("2026-10-16T15:00:00Z");
     const shipped = await shippedPerWeek(maya, now);
     expect(shipped.labels).toEqual(["W35", "W36", "W37", "W38", "W39", "W40", "W41", "W42"]);
@@ -112,21 +113,17 @@ describe.skipIf(!hasDb)("delivery against Postgres", () => {
     // Same source as the phase card: October's weeks sum to the month's count once September's days are out.
     const [{ n }] = await withTenant(app, T, (tx) => tx.execute(sql`select count(*)::int as n from delivery.proposal where phase = 'released' and released_at >= '2026-09-28' and released_at < '2026-10-01'`));
     expect(shipped.values.slice(5).reduce((a, b) => a + b, 0) - Number(n)).toBe((await phaseCounts(maya, now)).releasedThisMonth);
-    const before = await weeklyThroughput(maya, now);
+    // 074 AC-31: the mock's chart, from tasks closed each week and the weekly snapshots.
+    const before = await tasksPerWeek(maya, {}, now);
     expect(before.done).toEqual([24, 29, 31, 27, 33, 35, 30, 38]);
-    // Per-project rows beside the portfolio row (ingestion writes both) don't change the portfolio.
-    const [con] = await withTenant(app, T, (tx) => tx.execute(sql`select id from delivery.project where key = 'CON'`));
-    await withTenant(app, T, (tx) => tx.execute(sql`insert into delivery.weekly_stat (tenant_id, project_id, week, planned, done) values (${T}, ${con.id}, '2026-10-12', 12, 11)`));
-    try {
-      expect((await weeklyThroughput(maya, now)).done).toEqual(before.done);
-    } finally {
-      await withTenant(app, T, (tx) => tx.execute(sql`delete from delivery.weekly_stat where project_id = ${con.id}`));
-    }
-    // A week with no roll-up is null, never 0; a window with none at all is all nulls.
-    const later = await weeklyThroughput(maya, new Date("2026-11-03T15:00:00Z"));
+    expect(before.planned).toEqual([28, 30, 30, 32, 32, 34, 34, 36]);
+    expect(before.plannedFrom).toBeNull();
+    // Done weeks with no closed task are 0; past weeks with no snapshot have no Planned; the current week's is live.
+    const later = await tasksPerWeek(maya, {}, new Date("2026-11-03T15:00:00Z"));
     expect(later.labels.slice(-3)).toEqual(["W43", "W44", "W45"]);
-    expect(later.done.slice(-3)).toEqual([null, null, null]);
-    expect((await weeklyThroughput(maya, new Date("2027-06-01T15:00:00Z"))).planned.every((x) => x === null)).toBe(true);
+    expect(later.done.slice(-3)).toEqual([0, 0, 0]);
+    expect(later.planned.slice(-3, -1)).toEqual([null, null]);
+    expect(typeof later.planned.at(-1)).toBe("number");
   });
 
   it("today is the tenant's clock pin, else the real date; the windows follow it (review round 2)", async () => {
@@ -136,7 +133,7 @@ describe.skipIf(!hasDb)("delivery against Postgres", () => {
     try {
       expect((await today(maya)).toISOString()).toBe("2026-10-16T15:00:00.000Z");
       expect((await shippedPerWeek(maya)).labels.at(-1)).toBe("W42");
-      expect((await weeklyThroughput(maya)).done.at(-1)).toBe(38);
+      expect((await tasksPerWeek(maya)).done.at(-1)).toBe(38);
       expect((await phaseCounts(maya)).releasedThisMonth).toBe(5);
       // Windows stop at the pinned day: a release recorded after it is not counted (final review).
       await withTenant(app, T, (tx) => tx.execute(sql`update delivery.proposal set released_at = '2026-10-20T10:00:00Z' where key = 'HRI-100'`));

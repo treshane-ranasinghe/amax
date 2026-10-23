@@ -4,7 +4,7 @@ import { can, type Viewer } from "@amax/auth";
 import { ForbiddenError, getRuntime } from "@amax/core/server";
 import type { Phase } from "../contracts";
 
-const read = async <T>(viewer: Viewer, fn: (tx: Tx) => Promise<T>) => {
+export const read = async <T>(viewer: Viewer, fn: (tx: Tx) => Promise<T>) => {
   if (!can(viewer, "delivery:read")) throw new ForbiddenError("delivery:read", "delivery");
   return withTenant(getRuntime().db, viewer.tenantId, fn);
 };
@@ -101,20 +101,6 @@ export function lastWeeks(now: Date, n = 8) {
   const m = monday(now);
   return Array.from({ length: n }, (_, i) => { const d = new Date(m.getTime() - (n - 1 - i) * 7 * 86_400_000); return { label: `W${isoWeek(d)}`, monday: d.toISOString().slice(0, 10) }; });
 }
-
-/**
- * Portfolio tasks planned and done per week, from the portfolio roll-up (the project_id-null row;
- * per-project rows are not summed into it, review round 1). A week with no roll-up is null, not 0:
- * until ingestion (008) writes them there is no data, and the chart says so.
- */
-export const weeklyThroughput = (v: Viewer, now?: Date) =>
-  read(v, async (tx) => {
-    const weeks = lastWeeks(now ?? (await clockOf(tx)));
-    const rows = await tx.execute(sql`select week::text as week, planned, done from delivery.weekly_stat where project_id is null and week >= ${weeks[0].monday}`);
-    const at = (w: string) => rows.find((r) => r.week === w);
-    const col = (k: "planned" | "done") => weeks.map((w) => { const r = at(w.monday); return r ? Number(r[k]) : null; });
-    return { labels: weeks.map((w) => w.label), planned: col("planned"), done: col("done") };
-  });
 
 /**
  * Proposals that reached Prod per ISO week, from proposal.released_at: the same source as

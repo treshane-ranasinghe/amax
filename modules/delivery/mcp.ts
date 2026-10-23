@@ -11,6 +11,7 @@ import { syncProposal } from "./server/services";
 import { getRepoSync, getSyncPush, linkProjectRepo } from "./server/repo-sync";
 import { PushInput, pushSpecclaw } from "./server/push";
 import { RepoUrl } from "./sync/repo-url";
+import { tasksPerWeek } from "./server/weekly";
 import { checkReleaseRef, getDeployment, getEnvironment, getProject, getProposal, getRelease, isRelease, listEnvironments, listProjects, listProposals, listReleases } from "./server/queries";
 import { createProject, createProposal, createRelease, moveProposal, recordDeployment, removeEnvironment, setReleaseProposals, tagRelease, upsertEnvironment, voidDeployment } from "./server/services";
 
@@ -26,6 +27,9 @@ const view = "view" as const;
 
 export const mcpTools: McpToolDef[] = [
   tool({ ...read, pin: view, name: "list_projects", description: "Active projects with health, sprint progress and next release.", input: z.object({}), run: (v) => listProjects(v) }),
+  // 074 AC-6: the Projects screen's "Tasks done per week", with its client filter and Active / Closed tab.
+  tool({ ...read, pin: view, name: "get_tasks_per_week", description: "Tasks planned and done per ISO week over the last 8 weeks, for active (or closed) projects, optionally one client. Done counts tasks closed that week; Planned is the tasks open at the week's start on Planned or Building proposals (null for a past week with no snapshot).",
+    input: z.object({ client: z.string().optional(), status: z.enum(["active", "closed"]).optional() }), run: (v, a) => tasksPerWeek(v, a) }),
   // 008 AC-4: the Overview's Agent activity feed, and one line of it for its pin.
   tool({ ...read, pin: view, name: "list_activity", description: "What agents, pipelines and people did lately through ingestion, newest first, with who acted for whom.",
     input: z.object({ limit: z.number().int().min(1).max(50).optional() }), run: (v, a) => listActivity(v, a.limit) }),

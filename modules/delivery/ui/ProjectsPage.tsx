@@ -1,7 +1,8 @@
 import type { ScreenProps } from "@amax/core";
 import { IntentButton, PinButton, Ticket } from "@amax/ui";
 import { projectPin } from "../pins";
-import { listProjects, weeklyThroughput } from "../server/queries";
+import { listProjects } from "../server/queries";
+import { tasksPerWeek } from "../server/weekly";
 import { ART_SPRITE } from "./art";
 import { axisMax, Donut, LineChart } from "./charts";
 import { Avatar } from "./Avatar";
@@ -23,7 +24,7 @@ export async function ProjectsPage({ viewer: raw, searchParams = {} }: ScreenPro
   const viewer = needViewer(raw);
   if (!viewer) return <><h1>Projects</h1><SignInFirst /></>;
   const status = searchParams.status === "closed" ? "closed" : "active";
-  const [all, weekly] = await Promise.all([listProjects(viewer, status), weeklyThroughput(viewer)]);
+  const [all, weekly] = await Promise.all([listProjects(viewer, status), tasksPerWeek(viewer, { status, client: searchParams.client })]);
   const clients = [...new Set(all.map((p) => p.client))];
   const projects = searchParams.client ? all.filter((p) => p.client === searchParams.client) : all;
   const value = projects.reduce((n, p) => n + (p.contractValue ?? 0), 0);
@@ -33,7 +34,7 @@ export async function ProjectsPage({ viewer: raw, searchParams = {} }: ScreenPro
   const onTrack = projects.find((p) => p.health === "on-track" && version(p.nextRelease));
   const pct = value ? Math.round((invoiced / value) * 100) : 0;
   const shownClients = new Set(projects.map((p) => p.client)).size;
-  const noWeekly = weekly.done.every((d) => d === null) && weekly.planned.every((d) => d === null);
+  const noWeekly = weekly.done.every((d) => !d) && weekly.planned.every((d) => !d);
   // The axis grows with the data (40 at least, as in the mock), so no week is drawn past the top.
   const yMax = axisMax([...weekly.planned, ...weekly.done], 40, 10);
   const lede = [

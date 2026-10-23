@@ -14,6 +14,7 @@ import { ReleasePage } from "./ui/ReleasePage";
 import { ProjectProposals, ProjectReleases } from "./ui/ProjectLists";
 import { ContractSection, RisksSection, TeamSection } from "./ui/ProjectSections";
 import { deliveryOverview } from "./server/overview";
+import { weeklySnapshot, weeklySnapshotSchedule } from "./workflows";
 
 const READ = ["delivery:read"];
 
@@ -27,7 +28,7 @@ export default defineModule({
   nav: [{ path: "proposals", title: "Proposals", icon: "doc" }, { path: "releases", title: "Releases", icon: "rocket" }],
   dependsOn: [],
   integratesWith: [],
-  permissions: ["delivery:read", "delivery:project:create", "delivery:proposal:create", "delivery:proposal:move", "delivery:release:create", "delivery:deployment:record", "delivery:proposal:sync", "delivery:task:done", "delivery:identity:link", "delivery:commit-time:manage", "delivery:project:link", "delivery:proposal:push"],
+  permissions: ["delivery:read", "delivery:project:create", "delivery:proposal:create", "delivery:proposal:move", "delivery:release:create", "delivery:deployment:record", "delivery:proposal:sync", "delivery:task:done", "delivery:identity:link", "delivery:commit-time:manage", "delivery:project:link", "delivery:proposal:push", "delivery:weekly:snapshot"],
   grants: {
     Leadership: READ,
     Finance: READ,
@@ -77,6 +78,8 @@ export default defineModule({
   viewerScopes: async (tx, user) => ({ managedProjects: await managedProjectIds(tx, user.userId) }),
   chatIntents,
   jobs: [],
+  workflows: [weeklySnapshot],
+  schedules: [weeklySnapshotSchedule],
   // 035: outgoing webhooks send only declared fields (review 058).
   events: {
     emits: Object.values(EVENTS),
