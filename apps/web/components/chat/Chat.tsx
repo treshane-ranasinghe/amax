@@ -176,7 +176,7 @@ export function Chat({ open, onClose, returnFocus, signedIn, voice, usage = null
     setBusy(true);
     setLog((l) => [...l, { kind: "me", text: message, highlights: [] }]);
     const sent = pins;
-    const r = await sendChat({ conversationId: convo.current, text: message, pins: sent, intentId: intent });
+    const r = await sendChat({ conversationId: convo.current, text: message, pins: sent, intentId: intent, screen: window.location.pathname });
     setBusy(false);
     if (!r.ok) { setLog((l) => [...l, { kind: "amax", text: r.error, tools: [], error: true }]); return; }
     convo.current = r.conversationId;

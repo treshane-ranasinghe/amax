@@ -24,6 +24,15 @@ the user sees a confirm card and decides, so never say a change is done until a 
 If a required field is missing, ask for it in one short question instead of calling the tool.
 If a tool says you're not allowed, tell the user plainly that their role can't do that.`;
 
+/**
+ * 075: the screen the person is on, so "add release v2.5.0" on a project's Releases section means
+ * that project. Only a plain app path is passed on; anything else is dropped.
+ */
+const screenNote = (screen?: string) =>
+  screen && /^\/[\w\-/.]{0,200}$/.test(screen)
+    ? `\n\nThe user is on the screen ${screen}. When they don't name the record, use the one this screen shows (for example /delivery/p/CON/releases is project CON); ask when the screen shows several.`
+    : "";
+
 const titleOf = (t: RegisteredTool, input: Record<string, unknown>) =>
   `${t.description.split(".")[0]}: ${Object.values(input).filter((v) => typeof v === "string" || typeof v === "number").join(", ")}`;
 
@@ -97,10 +106,10 @@ async function proposeCheck(t: RegisteredTool, viewer: Viewer, input: Record<str
 }
 
 /** One user message: answer with read tools, turn write calls into confirm cards. */
-export const chatTurn = (db: Db, registry: Registry, viewer: Viewer, opts: { conversationId?: string; text: string; pins?: Pin[]; intent?: Intent }): Promise<ChatTurn> =>
+export const chatTurn = (db: Db, registry: Registry, viewer: Viewer, opts: { conversationId?: string; text: string; pins?: Pin[]; intent?: Intent; screen?: string }): Promise<ChatTurn> =>
   withTrace(traceFor(viewer), () => runTurn(db, registry, viewer, opts));
 
-async function runTurn(db: Db, registry: Registry, viewer: Viewer, opts: { conversationId?: string; text: string; pins?: Pin[]; intent?: Intent }): Promise<ChatTurn> {
+async function runTurn(db: Db, registry: Registry, viewer: Viewer, opts: { conversationId?: string; text: string; pins?: Pin[]; intent?: Intent; screen?: string }): Promise<ChatTurn> {
   const convo = await load(db, viewer, opts.conversationId);
   await traceStep({ kind: "turn", recordId: convo.id, detail: { pins: opts.pins?.length ?? 0, intent: opts.intent?.id ?? null } });
   const pending: PendingAction[] = [];
@@ -133,9 +142,10 @@ async function runTurn(db: Db, registry: Registry, viewer: Viewer, opts: { conve
   const intentNote = opts.intent
     ? `\n\nThe user started "${opts.intent.label}". Fill the ${opts.intent.tool} tool; required: ${opts.intent.required.join(", ")}. Questions to use when something is missing: ${opts.intent.fields.map((f) => `${f.name}: ${f.ask}`).join(" | ")}.`
     : "";
+  const screen = screenNote(opts.screen);
   const messages: Message[] = [...convo.messages, { role: "user", content: [{ type: "text", text: opts.text }] }];
   const result = await converse({ tenantId: viewer.tenantId, caller: `user:${viewer.userId}`, userId: viewer.userId, conversationId: convo.id, source: "chat", purpose: opts.intent ? `chat:${opts.intent.id}` : "chat" }, {
-    instructions: INSTRUCTIONS + intentNote,
+    instructions: INSTRUCTIONS + intentNote + screen,
     messages,
     tools,
     data,

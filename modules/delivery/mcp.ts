@@ -57,8 +57,13 @@ export const mcpTools: McpToolDef[] = [
     permission: "delivery:proposal:move", input: z.object({ key: z.string(), to: z.enum(["proposed", "planned", "building", "verified"]).optional(), lane: z.string().optional() }),
     service: moveProposal, run: (v, a, s = "mcp") => moveProposal(ctxFor(v, s), a) }),
   ...laneTools,
-  tool({ name: "create_release", description: "Create a release (version tag) for a project, optionally with proposal keys.", scope: "write", permission: "delivery:release:create",
-    input: z.object({ projectKey: z.string(), version: z.string(), proposalKeys: z.array(z.string()).optional() }),
+  // 075: amax adds releases from a typed message, so the tool says how to fill each field.
+  tool({ name: "create_release", description: "Create a release (version tag) for a project, optionally with proposal keys. It shows on the release map straight away, as not deployed yet.", scope: "write", permission: "delivery:release:create",
+    input: z.object({
+      projectKey: z.string().describe("The project's key, e.g. CON. When the person names the project, look its key up with list_projects."),
+      version: z.string().describe("The version as the person says it, e.g. v2.5.0."),
+      proposalKeys: z.array(z.string()).optional().describe("Only the proposals the person names, e.g. CON-013. Leave it out when they name none."),
+    }),
     service: createRelease, run: (v, a, s = "mcp") => createRelease(ctxFor(v, s), { ...a, proposalKeys: a.proposalKeys ?? [] }) }),
   tool({ ...read, pin: view, name: "list_environments", description: "A project's environments in order, which one is Prod, and how many deployments each has.", input: z.object({ projectKey: z.string() }),
     run: (v, a) => listEnvironments(v, a.projectKey) }),

@@ -15,12 +15,12 @@ export type ChatResult = ({ ok: true; usage: string | null } & ChatTurn) | { ok:
 const friendly = (e: unknown) =>
   e instanceof AiDisabledError ? e.message : e instanceof Error && /forbidden|scope/.test(e.message) ? e.message : "Sorry, something went wrong. Try again.";
 
-export async function sendChat(input: { conversationId?: string; text: string; pins?: Pin[]; intentId?: string }): Promise<ChatResult> {
+export async function sendChat(input: { conversationId?: string; text: string; pins?: Pin[]; intentId?: string; screen?: string }): Promise<ChatResult> {
   try {
     const viewer = await currentViewer();
     if (!aiConfigured()) return { ok: false, error: "AI is off: no API key is configured on the server." };
     const intent = input.intentId ? chatIntents().find((i) => i.id === input.intentId) : undefined;
-    const turn = await chatTurn(getDb()!, toolRegistry(), viewer, { conversationId: input.conversationId, text: input.text.slice(0, 4000), pins: input.pins?.slice(0, 8), intent });
+    const turn = await chatTurn(getDb()!, toolRegistry(), viewer, { conversationId: input.conversationId, text: input.text.slice(0, 4000), pins: input.pins?.slice(0, 8), intent, screen: input.screen });
     return { ok: true, ...turn, usage: await myChatUsage(viewer) };
   } catch (e) {
     const id = logError("chat", e);

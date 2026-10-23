@@ -30,6 +30,8 @@ const RULES: Rule[] = [
   [new RegExp(`^rename the (.+?) lane on ${KEY} to (.+)$`, "i"), (m) => [["rename_board_lane", { projectKey: m[2], lane: m[1], name: m[3].trim() }]]],
   [new RegExp(`^move the (.+?) lane on ${KEY} (left|right)\\s*$`, "i"), (m) => [["move_board_lane", { projectKey: m[2], lane: m[1], direction: m[3].toLowerCase() }]]],
   [new RegExp(`^remove the (.+?) lane on ${KEY}\\s*$`, "i"), (m) => [["remove_board_lane", { projectKey: m[2], lane: m[1] }]]],
+  // 075: "add release v2.5.0 to CON with CON-013 and CON-014"; the proposals are optional.
+  [new RegExp(`^add (?:a )?release (\\S+) to ${KEY}(?: with (.+?))?\\s*$`, "i"), (m) => [["create_release", { projectKey: m[2], version: m[1], ...(m[3] ? { proposalKeys: names(m[3]) } : {}) }]]],
   [new RegExp(`^tag ${KEY} (\\S+) as (\\S+)\\s*$`, "i"), (m) => [["tag_release", { projectKey: m[1], version: m[2], newVersion: m[3] }]]],
   [new RegExp(`^set the proposals in ${KEY} (\\S+) to: (.*)$`, "i"), (m) => [["set_release_proposals", { projectKey: m[1], version: m[2], proposalKeys: names(m[3]) }]]],
   [new RegExp(`^void the (.+?) deployment of ${KEY} (\\S+) \\(id ([0-9a-f-]{36})\\)\\. reason: (.+)$`, "i"),
