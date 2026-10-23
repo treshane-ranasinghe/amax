@@ -929,6 +929,36 @@ body.picking .pinnable:hover{outline:2px dashed var(--violet);outline-offset:2px
   </div>
 </section>
 
+<section data-change="074-projects-board-and-charts" id="074-projects-board-and-charts" data-roles="admin leadership pm engineer" data-title="Projects: board lanes and release times" data-nav="no" data-parent="001-amax-foundation-projects">
+  <h1>Projects: board lanes and release times</h1>
+  <p class="lede">The <a href="#001-amax-foundation-project">Contoso Portal board</a> and the <a href="#001-amax-foundation-releases">release map</a> as built, with these blocks changed. The Projects charts keep their layout and read live data.</p>
+  <div class="board" style="grid-template-columns:repeat(4,minmax(200px,1fr));margin-bottom:28px">
+    <section class="lane" aria-label="Planned, 1">
+      <div class="lane-head"><span class="lh">Planned</span><span>1</span></div>
+      <div class="tcard"><div class="id">CON-013</div><p>Dark mode</p><div class="foot"><span class="chip">0 of 3 tasks</span><button class="btn sm" aria-label="Move CON-013, Dark mode">⠿ Drag</button></div></div>
+      <button class="btn sm" style="width:100%;border-style:dashed">✦ Add lane</button>
+    </section>
+    <section class="lane" aria-label="Building, 1">
+      <div class="lane-head"><span class="lh">Building</span><span>1</span></div>
+      <div class="tcard" style="outline:2px dashed #7B61FF;opacity:.75"><div class="id">CON-014</div><p>Invoice export to PDF</p><div class="foot" role="status">Moving… confirm it in chat<button class="btn sm">Cancel</button></div></div>
+    </section>
+    <section class="lane" aria-label="Code review, in Building, 1">
+      <div class="lane-head"><span class="lh"><small class="muted" style="display:block;font-size:11px">Building ›</small>Code review</span><span>1</span><span class="muted" aria-label="Code review lane options">⋯</span></div>
+      <div class="tcard"><div class="id">CON-011</div><p>Global search</p><div class="foot"><span class="chip agent">Kasun</span><span>1 of 5, 2 h</span></div></div>
+      <button class="btn sm" style="width:100%;border-style:dashed">✦ Add lane</button>
+    </section>
+    <section class="lane" aria-label="Verified, 2">
+      <div class="lane-head"><span class="lh">Verified</span><span>2</span></div>
+      <div class="tcard"><div class="id">CON-012</div><p>SSO token refresh</p></div>
+    </section>
+  </div>
+  <div class="card" style="max-width:320px">
+    <div class="card-head"><h2>Station details</h2><span class="chip">Release map, Fleet v1.8.0 UAT</span></div>
+    <b>UAT · Rolled back</b>
+    <p class="muted" style="margin:4px 0 0">Wed Oct 14, 16:30<br>2 days 2 h after QA<br>In UAT for 2 days 4 h<br>By Nimal, pipeline run 1190<br>waiting on Maya 2 d</p>
+  </div>
+</section>
+
 <!-- ================= Insights ================= -->
 <section data-change="026-insights" id="001-amax-foundation-insights" data-roles="admin leadership pm" data-title="Insights" data-icon="spark">
   <div class="row head">

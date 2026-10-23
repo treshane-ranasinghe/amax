@@ -267,23 +267,31 @@ What changes on screen, and where to see it: [`074-projects-board-and-charts`](.
 ## Tasks
 
 - [x] `T1` — Tasks per week: per-project `weekly_stat`, a task-week read (Done live, Planned from snapshots or live for the current week), the weekly snapshot service, workflow and schedule, and `get_tasks_per_week` (AC-1–AC-6)
-  Files: modules/delivery/db/migrations/0018_tasks_per_week.sql, modules/delivery/server/weekly.ts, modules/delivery/server/queries.ts, modules/delivery/workflows.ts, modules/delivery/mcp.ts, modules/delivery/module.ts, modules/delivery/tests/weekly.test.ts
+  Files: modules/delivery/db/migrations/0018_tasks_per_week.sql, modules/delivery/server/weekly.ts, modules/delivery/server/snapshot.ts, modules/delivery/server/queries.ts, modules/delivery/workflows.ts, modules/delivery/mcp.ts, modules/delivery/module.ts, modules/delivery/fixtures/index.ts, modules/delivery/tests/weekly.test.ts, modules/delivery/tests/delivery.test.ts
 - [x] `T2` — Revenue slot: core manifest `slots` and `readSlot`, the web app wiring, Finance's `delivery.revenue-by-project` slot with FX conversion, and `get_revenue_by_project` (AC-7–AC-11)
-  Files: packages/core/src/module.ts, packages/core/src/slots.ts, packages/core/src/server.ts, apps/web/lib/server.ts, modules/delivery/contracts.ts, modules/finance/server/revenue.ts, modules/finance/module.ts, modules/finance/mcp.ts, modules/finance/tests/revenue.test.ts
+  Files: packages/core/src/module.ts, packages/core/src/slots.ts, packages/core/src/server.ts, apps/web/lib/server.ts, modules/delivery/contracts.ts, modules/finance/server/revenue.ts, modules/finance/server/totals.ts, modules/finance/module.ts, modules/finance/mcp.ts, modules/finance/tests/revenue.test.ts
 - [x] `T3` — Projects page: both charts read live data with their notes, empty and Finance states, pins, and fixtures seeded from real tasks and snapshots (AC-1–AC-10, AC-30, AC-31)
-  Files: modules/delivery/ui/ProjectsPage.tsx, modules/delivery/fixtures/index.ts, modules/delivery/tests/weekly.test.ts
+  Files: modules/delivery/ui/ProjectsPage.tsx, modules/delivery/ui/TasksCard.tsx, modules/delivery/ui/RevenueCard.tsx, modules/delivery/ui/revenue.ts, modules/delivery/tests/projects-cards.test.ts
   Depends: T1, T2
 - [x] `T4` — Lanes: `delivery.lane` table and `proposal.lane_id`, lane services and MCP tools, the `delivery.add-lane` intent, `move_proposal` with `lane` and a row lock, `create_proposal` with `lane`, lane events and permission (AC-16–AC-22, AC-24)
-  Files: modules/delivery/db/migrations/0019_lanes.sql, modules/delivery/server/lanes.ts, modules/delivery/server/services.ts, modules/delivery/server/queries.ts, modules/delivery/contracts.ts, modules/delivery/mcp.ts, modules/delivery/chat.ts, modules/delivery/module.ts, modules/delivery/fixtures/index.ts, modules/delivery/tests/lanes.test.ts
+  Files: modules/delivery/db/migrations/0019_lanes.sql, modules/delivery/server/lane-of.ts, modules/delivery/server/lanes.ts, modules/delivery/server/board.ts, modules/delivery/server/services.ts, modules/delivery/server/queries.ts, modules/delivery/contracts.ts, modules/delivery/mcp.ts, modules/delivery/mcp-lanes.ts, modules/delivery/chat.ts, modules/delivery/module.ts, modules/delivery/fixtures/index.ts, modules/delivery/tests/db.ts, modules/delivery/tests/lanes.test.ts, modules/delivery/tests/lane-moves.test.ts
 - [x] `T5` — Board UI: lanes grouped by phase, drag and drop (pointer, touch, keyboard) opening chat, the pending state with Cancel, Add lane and the lane menu; chat reports each decided card to the page (AC-12–AC-15, AC-23)
-  Files: modules/delivery/ui/ProjectPage.tsx, modules/delivery/ui/Board.tsx, modules/delivery/ui/board.ts, modules/delivery/ui/delivery.css, apps/web/components/chat/Chat.tsx, packages/ui/src/components/PinButton.tsx, modules/delivery/tests/board.test.ts
+  Files: modules/delivery/ui/ProjectPage.tsx, modules/delivery/ui/Board.tsx, modules/delivery/ui/BoardCard.tsx, modules/delivery/ui/LaneHead.tsx, modules/delivery/ui/useBoardDrag.ts, modules/delivery/ui/drag-rules.ts, modules/delivery/ui/delivery.css, apps/web/components/chat/Chat.tsx, packages/ui/src/components/PinButton.tsx, packages/ui/src/index.ts, packages/ai/src/scripted-writes.ts, modules/delivery/tests/board-drag.test.ts
   Depends: T4
 - [x] `T6` — Release stage times: stage details in `listReleases`, the station tooltip with focus, tap and Esc, and display names for who recorded it (AC-25–AC-28)
-  Files: modules/delivery/server/queries.ts, modules/delivery/server/stages.ts, modules/delivery/ui/ReleasesPage.tsx, modules/delivery/ui/StationTip.tsx, modules/delivery/ui/delivery.css, modules/delivery/tests/stages.test.ts
-- [ ] `T7` — Mock section, README, lint, typecheck, `check:graph` and the full test suites (AC-29, AC-32)
+  Files: modules/delivery/server/stages.ts, modules/delivery/server/queries.ts, modules/delivery/ui/stage-times.ts, modules/delivery/ui/StationTips.tsx, modules/delivery/ui/ReleasesPage.tsx, modules/delivery/ui/delivery.css, modules/delivery/tests/stages.test.ts, modules/delivery/tests/ui-logic.test.ts
+- [x] `T7` — Mock section, README, lint, typecheck, `check:graph` and the full test suites (AC-29, AC-32)
   Files: .specclaw/mock/index.html, modules/delivery/README.md
   Depends: T3, T5, T6
 
 ## Verify
 
-Not started.
+Build notes (local Windows machine, embedded Postgres 16 on `DATABASE_MIGRATE_URL`; full verify still to run with `/specclaw:verify`):
+
+- Unit and Postgres tests: delivery 275/277 and finance 13/13 pass. The two delivery failures are Windows-only and fail on `main` too: `releases.test.ts` matches `modules/delivery/` against a backslash path, and `create-project-surfaces.test.ts` times out walking `node_modules` on OneDrive.
+- Every other package passes run alone with longer timeouts. In the parallel repo-wide run, 30 hooks hit the 60 s limit on this machine. The remaining failures are Windows-only and untouched by 074: core `ac5-adapters` (backslash paths, 60 pre-existing files), workflows `kill.test` (`spawn npx`), and testing `ac7`/`ac3` (symlink EPERM, the graph check's `/`-separated exclusions).
+- `pnpm -r run lint` (tsc in every package): exit 0. `node scripts/check-graph.mjs --root .`: only the R7 sample in `packages/testing/boundaries` (excluded on POSIX paths, not on Windows).
+- E2e (`board.spec.ts`, `release-map.spec.ts`, fictional Northwind Kiosk data in `board-seed.ts`): 9/9 pass in the `writes` project. The first run found two real bugs, both fixed: the card's Move button covered the drag handle (now top-left), and `.map svg` sized the map card's pin icon to 760 px, an invisible layer over every station (now `.map .maptips>svg`).
+- Windows e2e note: `global-auth.ts` only runs when `import.meta.url === file://${argv[1]}`, which never holds on Windows, so setup was run once by hand.
+- Quality: not_run (`specclaw-quality-scan` needs `jq`; `specclaw-presets` and `specclaw-preset-check` need Python, neither on this machine). New files stay within 80 lines by hand.
+- Mock: `#074-projects-board-and-charts` added. The board, lanes and station details match it.
