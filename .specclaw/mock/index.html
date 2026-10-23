@@ -959,6 +959,36 @@ body.picking .pinnable:hover{outline:2px dashed var(--violet);outline-offset:2px
   </div>
 </section>
 
+<section data-change="075-release-map-new-release" id="075-release-map-new-release" data-roles="admin leadership pm engineer" data-title="Release map: new release" data-nav="no" data-parent="001-amax-foundation-releases">
+  <h1>Release map: new release</h1>
+  <p class="lede">Maya asks amax in chat to add a release. Once she confirms, Contoso Portal v2.5.0 appears on the <a href="#001-amax-foundation-releases">release map</a> before its first deployment. The map itself has no new button.</p>
+  <div class="card map scroll-x" style="margin-bottom:28px">
+    <div class="card-head"><h2>Release map</h2><div class="seg" role="group" aria-label="Range"><button aria-pressed="true">Active</button><button aria-pressed="false">All</button></div></div>
+    <svg viewBox="0 0 900 200" role="img" aria-label="Contoso Portal v2.5.0: not deployed yet. Contoso Portal v2.4.0 is in QA.">
+      <g class="env" text-anchor="middle"><text x="300" y="20">Dev</text><text x="480" y="20">QA</text><text x="660" y="20">UAT</text><text x="840" y="20">Prod</text></g>
+      <g stroke="var(--line)" stroke-width="1.5"><line x1="300" y1="34" x2="300" y2="192"/><line x1="480" y1="34" x2="480" y2="192"/><line x1="660" y1="34" x2="660" y2="192"/><line x1="840" y1="34" x2="840" y2="192"/></g>
+      <text class="lbl" x="0" y="91">Contoso Portal</text><text class="cap" x="0" y="110">v2.5.0, 3 proposals</text>
+      <path class="ahead" d="M240 86H840" stroke="var(--line-2)"/>
+      <circle class="station" cx="300" cy="86" r="8" stroke="var(--line-2)"/><circle class="station" cx="480" cy="86" r="8" stroke="var(--line-2)"/><circle class="station" cx="660" cy="86" r="8" stroke="var(--line-2)"/><circle class="station" cx="840" cy="86" r="8" stroke="var(--line-2)"/>
+      <rect x="326" y="72" width="196" height="28" rx="10" fill="#EEF0F4"/><text x="424" y="91" text-anchor="middle" fill="#5A6275" font-size="12.5" font-weight="600" font-family="Avenir Next,system-ui">Not deployed yet · added Oct 16</text>
+      <text class="lbl" x="0" y="161">Contoso Portal</text><text class="cap" x="0" y="180">v2.4.0, 2 proposals</text>
+      <path class="line" pathLength="1" d="M240 156H480" stroke="#7B61FF"/><path class="ahead" d="M480 156H840" stroke="#7B61FF"/>
+      <circle class="station" cx="300" cy="156" r="9" stroke="#7B61FF"/><circle class="station" cx="480" cy="156" r="11" stroke="#7B61FF"/><circle cx="480" cy="156" r="4.5" fill="#7B61FF"/><circle class="station" cx="660" cy="156" r="8" stroke="var(--line-2)"/><circle class="station" cx="840" cy="156" r="8" stroke="var(--line-2)"/>
+      <rect x="506" y="142" width="132" height="28" rx="10" fill="#ECE8FF"/><text x="572" y="161" text-anchor="middle" fill="#5B44D6" font-size="12.5" font-weight="600" font-family="Avenir Next,system-ui">Testing since Oct 15</text>
+    </svg>
+  </div>
+  <div class="card" style="max-width:420px">
+    <div class="card-head"><h2>Chat, on the Releases page</h2><span class="chip">create_release</span></div>
+    <p style="margin:0 0 6px"><b>Maya:</b> add release v2.5.0 to Contoso Portal with CON-011, CON-013 and CON-014</p>
+    <p class="muted" style="margin:0 0 12px"><b>amax:</b> Here's the release. Confirm and it goes on the map.</p>
+    <div class="card" style="margin:0;padding:12px">
+      <b>Create release Contoso Portal v2.5.0</b>
+      <p class="muted" style="margin:4px 0 10px">With CON-011 Global search, CON-013 Dark mode, CON-014 Invoice export to PDF</p>
+      <div class="actions"><button class="btn primary">Confirm</button><button class="btn">Cancel</button></div>
+    </div>
+  </div>
+</section>
+
 <!-- ================= Insights ================= -->
 <section data-change="026-insights" id="001-amax-foundation-insights" data-roles="admin leadership pm" data-title="Insights" data-icon="spark">
   <div class="row head">
