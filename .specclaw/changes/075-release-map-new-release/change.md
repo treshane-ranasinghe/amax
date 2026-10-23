@@ -76,7 +76,7 @@ What changes on screen, and where to see it: [`075-release-map-new-release`](../
 
 ## Tasks
 
-- [ ] `T1` — Release map draws undeployed releases: `onActiveMap` keeps recent undeployed ones beside in-flight and Live rows, `mapRow`/`mapPill` give an all-grey dashed row and a "Not deployed yet · added <date>" pill, the map's label and station tooltips, no new button; fixture v2.5.0 created Oct 16; unit tests (AC-5–AC-11)
+- [x] `T1` — Release map draws undeployed releases: `onActiveMap` keeps recent undeployed ones beside in-flight and Live rows, `mapRow`/`mapPill` give an all-grey dashed row and a "Not deployed yet · added <date>" pill, the map's label and station tooltips, no new button; fixture v2.5.0 created Oct 16; unit tests (AC-5–AC-11)
   Files: modules/delivery/ui/ReleasesPage.tsx, modules/delivery/ui/delivery.css, modules/delivery/fixtures/index.ts, modules/delivery/tests/ui-logic.test.ts
 - [ ] `T2` — amax adds a release from a typed chat message: `create_release` takes the project by key or name and the proposals as optional, asks only for what's missing, takes the project from the Releases screen when not named, refuses without permission; the scripted model's rule for "add release <version> to <project> [with …]"; unit tests (AC-1–AC-4)
   Files: modules/delivery/mcp.ts, modules/delivery/chat.ts, modules/delivery/server/services.ts, packages/ai/src/scripted-writes.ts, apps/web/components/chat/Chat.tsx, modules/delivery/tests/releases.test.ts, packages/ai/tests/scripted-writes.test.ts

@@ -4,6 +4,7 @@ import { axisMax, runs } from "../ui/charts";
 import { csvCell, csvText } from "../ui/csv";
 import { count } from "../ui/ProjectsPage";
 import { actionFor, mapPill, mapRow, nextStep, onActiveMap, standing } from "../ui/ReleasesPage";
+import { stationTip } from "../ui/stage-times";
 
 // 041 review round 1: pure UI logic, table-driven.
 describe("CSV export neutralises formulas", () => {
@@ -31,7 +32,7 @@ const rel = (over: Partial<ReleaseRow>, ...stages: ReturnType<typeof st>[]): Rel
 
 describe("one standing for the table, the map and the pill", () => {
   const cases: [string, ReleaseRow, string | null, string | null, string][] = [
-    ["nothing reached", rel({}, st("Dev", 1, false, null), st("Prod", 2, true, null)), null, null, "Deploy to Dev"],
+    ["nothing reached", rel({}, st("Dev", 1, false, null), st("Prod", 2, true, null)), null, "Not deployed yet", "Deploy to Dev"],
     ["testing in QA", rel({}, st("Dev", 1, false, "deployed", "2026-10-12T09:00:00Z"), st("QA", 2, false, "testing", "2026-10-15T09:00:00Z"), st("Prod", 3, true, null)), "QA", "Testing since Oct 15", "Promote to Prod"],
     ["live in Prod", rel({}, st("Dev", 1, false, "deployed", "2026-09-22T09:00:00Z"), st("Prod", 2, true, "deployed", "2026-10-01T09:00:00Z")), "Prod", "Live since Oct 1", "Live"],
     // A stage after Prod rolled back while Prod stays deployed: every view says Live (they used to disagree).
@@ -41,7 +42,7 @@ describe("one standing for the table, the map and the pill", () => {
   it.each(cases)("%s", (_, r, lastEnv, pill, action) => {
     const s = standing(r);
     expect(s.last?.environment ?? null).toBe(lastEnv);
-    expect(mapPill(r)?.text ?? null).toBe(pill);
+    expect(mapPill(r).text).toBe(pill);
     expect(mapRow(r, r.stages.map((x) => x.environment)).stations.find((x) => x.last)?.environment ?? null).toBe(lastEnv);
     expect(nextStep(r) === null).toBe(action === "Live");
     const a = actionFor(r, true);
@@ -66,7 +67,7 @@ describe("the Active map", () => {
   const moving = (version: string, at: string, projectId = "p1") => rel({ version, projectId }, st("Dev", 1, false, "deployed", at), st("Prod", 2, true, null));
   const failed = (version: string, at: string) => rel({ version }, st("Dev", 1, false, "rolled-back", at), st("Prod", 2, true, null));
   const prodBack = (version: string, at: string) => rel({ version }, st("Dev", 1, false, "deployed", at), st("Prod", 2, true, "rolled-back", at));
-  const fresh = (version: string) => rel({ version }, st("Dev", 1, false, null), st("Prod", 2, true, null));
+  const fresh = (version: string, createdAt?: string) => rel({ version, createdAt }, st("Dev", 1, false, null), st("Prod", 2, true, null));
   // Rows arrive newest-written first; nothing here may depend on that or on deployment timing races.
   it.each([
     ["a recent live release, nothing in flight", [live("v1", "2026-10-01T09:00:00Z")], ["v1"]],
@@ -78,9 +79,25 @@ describe("the Active map", () => {
     ["an older release whose Prod rolled back, next to a newer live one", [live("v2", "2026-10-01T09:00:00Z"), prodBack("v1.9", "2026-09-10T09:00:00Z")], ["v2"]],
     ["a stale release in flight (no deployment for 45 days), nothing live", [moving("v1", "2026-07-01T09:00:00Z")], []],
     ["two live releases: only the latest Prod, whatever the row order", [live("v0.9", "2026-09-01T09:00:00Z"), live("v1", "2026-10-01T09:00:00Z")], ["v1"]],
-    ["a newer release not deployed anywhere changes nothing", [fresh("v2"), live("v1", "2026-10-01T09:00:00Z")], ["v1"]],
+    ["a newer release not deployed anywhere, created when unknown, changes nothing", [fresh("v2"), live("v1", "2026-10-01T09:00:00Z")], ["v1"]],
+    ["075 AC-6 a recent undeployed release shows beside the live one", [fresh("v2", "2026-10-16T08:30:00Z"), live("v1", "2026-10-01T09:00:00Z")], ["v2", "v1"]],
+    ["075 AC-6 a recent undeployed release shows beside one in flight", [fresh("v3", "2026-10-10T08:30:00Z"), moving("v2", "2026-10-05T09:00:00Z"), live("v1", "2026-10-01T09:00:00Z")], ["v3", "v2"]],
+    ["075 AC-6 an undeployed release created more than 45 days ago stays off Active", [fresh("v2", "2026-08-20T08:30:00Z")], []],
     ["projects are independent", [moving("v9", "2026-10-05T09:00:00Z", "p2"), live("v1", "2026-10-01T09:00:00Z")], ["v9", "v1"]],
   ])("%s", (_, releases, want) => expect(onActiveMap(releases as ReleaseRow[], now).map((r) => r.version)).toEqual(want));
+});
+
+describe("075 AC-5 an undeployed release on the map", () => {
+  const fresh = rel({ version: "v2.5.0", createdAt: "2026-10-16T08:30:00Z" }, st("Dev", 1, false, null), st("QA", 2, false, null), st("Prod", 3, true, null));
+  it("has every station unreached, no solid line and a Not deployed yet pill", () => {
+    const m = mapRow(fresh, ["Dev", "QA", "Prod"]);
+    expect(m.stations.map((s) => s.reached)).toEqual([false, false, false]);
+    expect(m.lineTo).toBeNull();
+    expect(m.aheadTo).toBe(2);
+    expect(mapPill(fresh)).toEqual({ kind: "new", text: "Not deployed yet · added Oct 16" });
+  });
+  it("075 AC-7 each station's details say it is not deployed yet", () =>
+    expect([0, 1, 2].map((i) => stationTip(fresh, i, new Date("2026-10-16T15:00:00Z")).title)).toEqual(["Dev · Not deployed yet", "QA · Not deployed yet", "Prod · Not deployed yet"]));
 });
 
 describe("line chart runs never bridge a missing week", () => {

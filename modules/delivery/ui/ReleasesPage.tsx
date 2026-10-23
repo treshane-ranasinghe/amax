@@ -71,11 +71,13 @@ export function actionFor(r: ReleaseRow, allowed: boolean): Action {
  * Prod deployment and within 45 days: an abandoned or rolled-back release older than the current
  * Live one, or stale, is history (review rounds 3 and 4). The map shows the releases in flight, or,
  * when there are none, the current Live release if its Prod deployment is within 45 days.
+ * 075: a release not deployed anywhere yet shows beside those while it was created within 45 days,
+ * so one amax just added is on the map before its first deployment.
  */
 export function onActiveMap(releases: ReleaseRow[], now: Date): ReleaseRow[] {
   const recent = (at: number) => now.getTime() - at <= 45 * 86_400_000;
   const latestAt = (r: ReleaseRow) => Math.max(...r.stages.map((s) => (s.status && s.at ? Date.parse(s.at) : -Infinity)));
-  const show = new Set<ReleaseRow>();
+  const show = new Set<ReleaseRow>(releases.filter((r) => !standing(r).last && r.createdAt && recent(Date.parse(r.createdAt))));
   for (const projectId of new Set(releases.map((r) => r.projectId))) {
     const own = releases.map((r) => ({ r, s: standing(r) })).filter((x) => x.r.projectId === projectId && x.s.last);
     const current = own.filter((x) => x.s.live?.at).sort((a, b) => Date.parse(b.s.live!.at!) - Date.parse(a.s.live!.at!))[0];
@@ -115,10 +117,13 @@ export function mapRow(r: ReleaseRow, columns: string[]) {
 
 const dayName = (iso: string) => new Date(iso).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: "UTC" }).replace(",", "");
 
-/** The pill beside a row's last station, worded as in the mock ("Testing since Oct 15", "Rolled back Wed Oct 14", "Live since Oct 1"). */
+/**
+ * The pill beside a row's last station, worded as in the mock ("Testing since Oct 15", "Rolled back
+ * Wed Oct 14", "Live since Oct 1"), or beside its first station when nothing has reached it (075).
+ */
 export function mapPill(r: ReleaseRow) {
   const { last, live } = standing(r);
-  if (!last) return null;
+  if (!last) return { kind: "new" as const, text: r.createdAt ? `Not deployed yet · added ${day(r.createdAt)}` : "Not deployed yet" };
   if (live) return { kind: "live" as const, text: `Live since ${day(live.at)}` };
   if (last.status === "rolled-back") return { kind: "back" as const, text: `Rolled back ${last.at ? dayName(last.at) : ""}`.trim() };
   if (last.status === "testing") return { kind: "testing" as const, text: `Testing since ${day(last.at)}` };
@@ -126,23 +131,27 @@ export function mapPill(r: ReleaseRow) {
 }
 
 // Fills, inks and widths as drawn in the mock.
-const PILL = { back: { fill: "#FDE7E4", ink: "#C2412F", w: 128 }, live: { fill: "#E3F8EF", ink: "#14845A", w: 118 }, testing: { fill: "#ECE8FF", ink: "#5B44D6", w: 132 }, in: { fill: "#ECE8FF", ink: "#5B44D6", w: 150 } };
+const PILL = { back: { fill: "#FDE7E4", ink: "#C2412F", w: 128 }, live: { fill: "#E3F8EF", ink: "#14845A", w: 118 }, testing: { fill: "#ECE8FF", ink: "#5B44D6", w: 132 }, in: { fill: "#ECE8FF", ink: "#5B44D6", w: 150 }, new: { fill: "#EEF0F4", ink: "#5A6275", w: 196 } };
+
+/** The map's overall label for a row: an undeployed release reads "not deployed yet" (075 AC-7). */
+const rowLabel = (r: ReleaseRow) => `${r.projectName} ${r.version}: ${standing(r).last ? mapPill(r).text : "not deployed yet"}`;
 
 // The mock's release map: one line per active release, stations per environment, and a status pill.
 function ReleaseMap({ releases, columns, now }: { releases: ReleaseRow[]; columns: string[]; now: Date }) {
-  const active = releases.filter((r) => standing(r).last);
   const x = (i: number) => 300 + i * 180;
-  const h = 70 * active.length + 60;
+  const h = 70 * releases.length + 60;
   return (
-    <svg viewBox={`0 0 ${Math.max(900, x(columns.length - 1) + 60)} ${h}`} role="group" aria-label={active.map((r) => `${r.projectName} ${r.version}: ${mapPill(r)?.text ?? "not deployed"}`).join(". ")}>
+    <svg viewBox={`0 0 ${Math.max(900, x(columns.length - 1) + 60)} ${h}`} role="group" aria-label={releases.map(rowLabel).join(". ")}>
       <g className="env" textAnchor="middle">{columns.map((e, i) => <text key={e} x={x(i)} y={20}>{e}</text>)}</g>
       <g stroke="var(--line)" strokeWidth={1.5}>{columns.map((e, i) => <line key={e} x1={x(i)} y1={34} x2={x(i)} y2={h - 8} />)}</g>
-      {active.map((r, row) => {
+      {releases.map((r, row) => {
         const y = 86 + row * 70;
         const c = HEX[r.projectColor] ?? "#7B61FF";
         const m = mapRow(r, columns);
-        const lastI = m.lineTo!;
-        const pill = mapPill(r)!;
+        // 075: nothing reached yet, so no solid line; the pill sits after the first station.
+        const fresh = m.lineTo === null;
+        const lastI = m.lineTo ?? m.stations[0]?.slot ?? 0;
+        const pill = mapPill(r);
         const live = pill.kind === "live";
         const w = PILL[pill.kind].w;
         const px = live ? x(lastI) - 144 : x(lastI) + 26;
@@ -151,8 +160,9 @@ function ReleaseMap({ releases, columns, now }: { releases: ReleaseRow[]; column
           <g key={r.id}>
             <text className="lbl" x={0} y={y + 5}>{r.projectName}</text>
             <text className="cap" x={0} y={y + 24}>{r.version}, {r.proposals} proposals{m.agrees ? "" : ", own stage order"}</text>
-            <path className={row % 3 ? `line l${(row % 3) + 1}` : "line"} pathLength={1} d={`M240 ${y}H${x(lastI) - (m.back ? 12 : 0)}`} stroke={c} />
-            {m.aheadTo !== null && lastI < m.aheadTo && <path className="ahead" d={`M${x(lastI) + (m.back ? 12 : 0)} ${y}H${x(m.aheadTo)}`} stroke={c} />}
+            {fresh ? m.aheadTo !== null && <path className="ahead" d={`M240 ${y}H${x(m.aheadTo)}`} stroke="var(--line-2)" />
+              : <path className={row % 3 ? `line l${(row % 3) + 1}` : "line"} pathLength={1} d={`M240 ${y}H${x(lastI) - (m.back ? 12 : 0)}`} stroke={c} />}
+            {!fresh && m.aheadTo !== null && lastI < m.aheadTo && <path className="ahead" d={`M${x(lastI) + (m.back ? 12 : 0)} ${y}H${x(m.aheadTo)}`} stroke={c} />}
             {m.stations.map((s, i) => { const tip = stationTip(r, i, now); return (
               <g key={s.environment} className="stationhit" tabIndex={0} role="button" aria-label={`${r.projectName} ${r.version}, ${tipText(tip)}`} data-tip={JSON.stringify(tip)} data-release={`${r.projectName} ${r.version}`}>
                 <circle cx={x(s.slot)} cy={y} r={18} fill="transparent" />

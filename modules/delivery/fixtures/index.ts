@@ -62,8 +62,9 @@ const SHIPPED: { project: string; version: string; day: string; n: number; title
   { project: "FLT", version: "v1.7.2", day: "2026-09-23", n: 3 }, { project: "FLT", version: "v1.7.3", day: "2026-10-06", n: 1, title: "Login hotfix" },
 ];
 
-const RELEASES: { project: string; version: string; deployments: [string, string, string, string?, string?][] }[] = [
-  { project: "CON", version: "v2.5.0", deployments: [] },
+const RELEASES: { project: string; version: string; created?: string; deployments: [string, string, string, string?, string?][] }[] = [
+  // 075: added by amax on the fixtures' today and not deployed yet, so it is on the Active map as in the mock.
+  { project: "CON", version: "v2.5.0", created: "2026-10-16T08:30:00Z", deployments: [] },
   { project: "CON", version: "v2.4.0", deployments: [["Dev", "deployed", "2026-10-12T09:00:00Z"], ["QA", "testing", "2026-10-15T09:00:00Z"]] },
   { project: "FLT", version: "v1.8.0", deployments: [["Dev", "deployed", "2026-10-08T09:00:00Z"], ["QA", "deployed", "2026-10-12T09:00:00Z"],
     ["UAT", "rolled-back", "2026-10-14T11:00:00Z", "waiting on Maya 2 d", "1190"]] },
@@ -109,7 +110,7 @@ export const deliveryFixtures: FixtureSeed = async ({ tx, tenantId, shared }) =>
   const releaseIds: Record<string, string> = {};
   for (const [i, r] of RELEASES.entries()) {
     const [row] = await tx.execute(sql`insert into delivery.release (tenant_id, project_id, version, created_at)
-      values (${tenantId}, ${ids[r.project]}, ${r.version}, ${new Date(Date.UTC(2026, 9, 10 - i)).toISOString()})
+      values (${tenantId}, ${ids[r.project]}, ${r.version}, ${r.created ?? new Date(Date.UTC(2026, 9, 10 - i)).toISOString()})
       on conflict (project_id, version) do update set version = excluded.version returning id`);
     releaseIds[`${r.project} ${r.version}`] = row.id as string;
     for (const [env, status, at, note, run] of r.deployments) {

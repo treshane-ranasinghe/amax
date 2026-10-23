@@ -96,8 +96,8 @@ describe.skipIf(!hasDb)("delivery against Postgres", () => {
     const rel = await listReleases(maya);
     expect(rel.map((r) => `${r.projectKey} ${r.version} ${r.proposals}`)).toEqual(["CON v2.5.0 3", "CON v2.4.0 2", "FLT v1.8.0 5", "HRI v0.9.2 4",
       "CON v2.3.0 1", "FLT v1.7.0 2", "HRI v0.9.0 3", "FLT v1.7.1 1", "HRI v0.9.1 4", "FLT v1.7.2 3", "FLT v1.7.3 1"]);
-    // The Active map is the mock's three rows: CON and FLT in flight, HRI's live v0.9.2; older live releases drop off.
-    expect(onActiveMap(rel, new Date("2026-10-16T15:00:00Z")).map((r) => `${r.projectKey} ${r.version}`)).toEqual(["CON v2.4.0", "FLT v1.8.0", "HRI v0.9.2"]);
+    // The Active map is the mock's rows: CON v2.5.0 not deployed yet (075), CON and FLT in flight, HRI's live v0.9.2; older live releases drop off.
+    expect(onActiveMap(rel, new Date("2026-10-16T15:00:00Z")).map((r) => `${r.projectKey} ${r.version}`)).toEqual(["CON v2.5.0", "CON v2.4.0", "FLT v1.8.0", "HRI v0.9.2"]);
     // Every released proposal, in every project, has a real release that reached Prod (review rounds 1 and 2).
     const orphans = await withTenant(app, T, (tx) => tx.execute(sql`select p.key from delivery.proposal p where p.phase = 'released' and not exists (
       select 1 from delivery.deployment d join delivery.environment e on e.id = d.environment_id where d.release_id = p.release_id and e.is_prod and d.status = 'deployed' and d.voided_at is null)`));
