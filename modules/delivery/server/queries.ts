@@ -3,6 +3,7 @@ import { withTenant, type Tx } from "@amax/db";
 import { can, type Viewer } from "@amax/auth";
 import { ForbiddenError, getRuntime } from "@amax/core/server";
 import type { Phase } from "../contracts";
+import { liveStages } from "./stages";
 
 export const read = async <T>(viewer: Viewer, fn: (tx: Tx) => Promise<T>) => {
   if (!can(viewer, "delivery:read")) throw new ForbiddenError("delivery:read", "delivery");
@@ -138,7 +139,11 @@ export const phaseCounts = (v: Viewer, at?: Date) =>
 
 export type ReleaseRow = {
   id: string; projectId: string; version: string; projectKey: string; projectName: string; projectColor: string; proposals: number; createdAt?: string | null;
-  stages: { environment: string; position: number; isProd: boolean; status: string | null; at: string | null; note: string | null; run: string | null }[];
+  stages: {
+    environment: string; position: number; isProd: boolean; status: string | null; at: string | null; note: string | null; run: string | null;
+    /** 074 AC-28: the first live deployment, the latest one's id, how many there were, and who recorded the latest. */
+    firstAt: string | null; deploymentId: string | null; count: number; recordedBy: string | null;
+  }[];
 };
 
 export const listReleases = (v: Viewer, opts: { projectKey?: string } = {}) =>
@@ -147,14 +152,14 @@ export const listReleases = (v: Viewer, opts: { projectKey?: string } = {}) =>
     const releases = await tx.execute(sql`select r.*, pr.key as project_key, pr.name as project_name, pr.color as project_color,
       (select count(*)::int from delivery.proposal p where p.release_id = r.id) as proposals
       from delivery.release r join delivery.project pr on pr.id = r.project_id ${opts.projectKey ? sql`where pr.key = ${opts.projectKey}` : sql``} order by r.created_at desc`);
-    const deps = await tx.execute(sql`select distinct on (release_id, environment_id) * from delivery.deployment where voided_at is null order by release_id, environment_id, at desc`);
+    const live = await liveStages(tx);
     return releases.map((r): ReleaseRow => ({
       id: r.id as string, projectId: r.project_id as string, version: r.version as string, projectKey: r.project_key as string, projectName: r.project_name as string,
       projectColor: r.project_color as string, proposals: Number(r.proposals), createdAt: iso(r.created_at),
       stages: envs.filter((e) => e.project_id === r.project_id).map((e) => {
-        const d = deps.find((x) => x.release_id === r.id && x.environment_id === e.id);
-        return { environment: e.name as string, position: Number(e.position), isProd: Boolean(e.is_prod), status: (d?.status as string | null) ?? null,
-          at: d ? new Date(d.at as string).toISOString() : null, note: (d?.note as string | null) ?? null, run: (d?.pipeline_run as string | null) ?? null };
+        const d = live.get(`${r.id as string}:${e.id as string}`);
+        return { environment: e.name as string, position: Number(e.position), isProd: Boolean(e.is_prod), status: d?.status ?? null, at: d?.at ?? null, note: d?.note ?? null, run: d?.run ?? null,
+          firstAt: d?.firstAt ?? null, deploymentId: d?.deploymentId ?? null, count: d?.count ?? 0, recordedBy: d?.recordedBy ?? null };
       }),
     }));
   });

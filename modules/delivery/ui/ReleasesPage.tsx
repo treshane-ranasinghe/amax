@@ -6,6 +6,8 @@ import { AskButton } from "./AskButton";
 import { listReleases, stageColumns, today, type ReleaseRow } from "../server/queries";
 import { releasePin } from "../pins";
 import { day, needViewer, SignInFirst } from "./parts";
+import { stationTip, tipText } from "./stage-times";
+import { StationTips } from "./StationTips";
 
 const HEX: Record<string, string> = { violet: "#7B61FF", amber: "#F2A93B", pink: "#F48B9B", mint: "#2FCB8C" };
 
@@ -127,12 +129,12 @@ export function mapPill(r: ReleaseRow) {
 const PILL = { back: { fill: "#FDE7E4", ink: "#C2412F", w: 128 }, live: { fill: "#E3F8EF", ink: "#14845A", w: 118 }, testing: { fill: "#ECE8FF", ink: "#5B44D6", w: 132 }, in: { fill: "#ECE8FF", ink: "#5B44D6", w: 150 } };
 
 // The mock's release map: one line per active release, stations per environment, and a status pill.
-function ReleaseMap({ releases, columns }: { releases: ReleaseRow[]; columns: string[] }) {
+function ReleaseMap({ releases, columns, now }: { releases: ReleaseRow[]; columns: string[]; now: Date }) {
   const active = releases.filter((r) => standing(r).last);
   const x = (i: number) => 300 + i * 180;
   const h = 70 * active.length + 60;
   return (
-    <svg viewBox={`0 0 ${Math.max(900, x(columns.length - 1) + 60)} ${h}`} role="img" aria-label={active.map((r) => `${r.projectName} ${r.version}: ${mapPill(r)?.text ?? "not deployed"}`).join(". ")}>
+    <svg viewBox={`0 0 ${Math.max(900, x(columns.length - 1) + 60)} ${h}`} role="group" aria-label={active.map((r) => `${r.projectName} ${r.version}: ${mapPill(r)?.text ?? "not deployed"}`).join(". ")}>
       <g className="env" textAnchor="middle">{columns.map((e, i) => <text key={e} x={x(i)} y={20}>{e}</text>)}</g>
       <g stroke="var(--line)" strokeWidth={1.5}>{columns.map((e, i) => <line key={e} x1={x(i)} y1={34} x2={x(i)} y2={h - 8} />)}</g>
       {active.map((r, row) => {
@@ -151,15 +153,16 @@ function ReleaseMap({ releases, columns }: { releases: ReleaseRow[]; columns: st
             <text className="cap" x={0} y={y + 24}>{r.version}, {r.proposals} proposals{m.agrees ? "" : ", own stage order"}</text>
             <path className={row % 3 ? `line l${(row % 3) + 1}` : "line"} pathLength={1} d={`M240 ${y}H${x(lastI) - (m.back ? 12 : 0)}`} stroke={c} />
             {m.aheadTo !== null && lastI < m.aheadTo && <path className="ahead" d={`M${x(lastI) + (m.back ? 12 : 0)} ${y}H${x(m.aheadTo)}`} stroke={c} />}
-            {m.stations.map((s) => (
-              <g key={s.environment}>
+            {m.stations.map((s, i) => { const tip = stationTip(r, i, now); return (
+              <g key={s.environment} className="stationhit" tabIndex={0} role="button" aria-label={`${r.projectName} ${r.version}, ${tipText(tip)}`} data-tip={JSON.stringify(tip)} data-release={`${r.projectName} ${r.version}`}>
+                <circle cx={x(s.slot)} cy={y} r={18} fill="transparent" />
                 {s.last && m.back ? <><circle cx={x(s.slot)} cy={y} r={13} fill="#F26B5B" /><path d={`m${x(s.slot) - 5} ${y - 5} 10 10m0-10-10 10`} stroke="#fff" strokeWidth={2.6} strokeLinecap="round" /></>
                   : s.last && live ? <><circle cx={x(s.slot)} cy={y} r={13} fill={c} /><circle cx={x(s.slot)} cy={y} r={5} fill="#fff" /></>
                   : s.last ? <><circle className="station" cx={x(s.slot)} cy={y} r={11} stroke={c} /><circle cx={x(s.slot)} cy={y} r={4.5} fill={c} /></>
                   : <circle className="station" cx={x(s.slot)} cy={y} r={s.reached ? 9 : 8} stroke={s.reached ? c : "var(--line-2)"} />}
                 {!m.agrees && <text className="cap" textAnchor="middle" x={x(s.slot)} y={y + 28}>{s.environment}</text>}
               </g>
-            ))}
+            ); })}
             <rect x={px} y={py} width={w} height={live ? 24 : 28} rx={live ? 9 : 10} fill={PILL[pill.kind].fill} />
             <text x={px + w / 2} y={py + (live ? 17 : 19)} textAnchor="middle" fill={PILL[pill.kind].ink} fontSize={live ? 12 : 12.5} fontWeight={600} fontFamily="Avenir Next,system-ui">{pill.text}</text>
           </g>
@@ -196,7 +199,7 @@ export function ReleasesCards({ viewer, releases, now, root, map, projectKey }: 
         <div className="card-head"><h2>Release map</h2><PinButton inline pin={{ label: "Release map", tool: "list_releases", args: pinArgs }} />
           <nav className="seg" aria-label="Range"><a href={root} aria-current={map !== "all" ? "true" : undefined}>Active</a><a href={`${root}?map=all`} aria-current={map === "all" ? "true" : undefined}>All</a></nav>
         </div>
-        <ReleaseMap releases={map === "all" ? releases : onActiveMap(releases, now)} columns={envs} />
+        <StationTips><ReleaseMap releases={map === "all" ? releases : onActiveMap(releases, now)} columns={envs} now={now} /></StationTips>
       </div>
       <div className="card flush pinnable">
         <div className="card-head"><h2>All releases</h2><PinButton inline pin={{ label: "All releases", tool: "list_releases", args: pinArgs }} /><IntentButton intent="delivery.new-release" label="New release" /></div>

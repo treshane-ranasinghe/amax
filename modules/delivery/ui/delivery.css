@@ -222,3 +222,10 @@
 .lanemenu .menuitem:hover,.lanemenu .menuitem:focus-visible{background:var(--sunken)}
 .lane .addlane{width:100%;justify-content:center;border:1.5px dashed var(--line-2);background:transparent}
 @media (prefers-reduced-motion:reduce){.tcard.picked{transform:none;transition:none}}
+/* 074: release map station details */
+.maptips{position:relative}
+.maptips .stationhit{cursor:pointer;outline:none}
+.maptips .stationhit:focus-visible circle:first-child{stroke:var(--violet);stroke-width:3}
+.stationtip{position:absolute;transform:translateX(-50%);z-index:20;display:grid;gap:3px;min-width:200px;max-width:280px;background:var(--card);color:var(--ink);border-radius:12px;padding:10px 12px;font-size:13px;box-shadow:0 8px 24px rgba(40,30,110,.16)}
+.stationtip span{color:var(--ink-2)}
+.stationtip .pin{position:static;opacity:1;justify-self:start}

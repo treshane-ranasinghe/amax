@@ -278,7 +278,7 @@ What changes on screen, and where to see it: [`074-projects-board-and-charts`](.
 - [x] `T5` — Board UI: lanes grouped by phase, drag and drop (pointer, touch, keyboard) opening chat, the pending state with Cancel, Add lane and the lane menu; chat reports each decided card to the page (AC-12–AC-15, AC-23)
   Files: modules/delivery/ui/ProjectPage.tsx, modules/delivery/ui/Board.tsx, modules/delivery/ui/board.ts, modules/delivery/ui/delivery.css, apps/web/components/chat/Chat.tsx, packages/ui/src/components/PinButton.tsx, modules/delivery/tests/board.test.ts
   Depends: T4
-- [ ] `T6` — Release stage times: stage details in `listReleases`, the station tooltip with focus, tap and Esc, and display names for who recorded it (AC-25–AC-28)
+- [x] `T6` — Release stage times: stage details in `listReleases`, the station tooltip with focus, tap and Esc, and display names for who recorded it (AC-25–AC-28)
   Files: modules/delivery/server/queries.ts, modules/delivery/server/stages.ts, modules/delivery/ui/ReleasesPage.tsx, modules/delivery/ui/StationTip.tsx, modules/delivery/ui/delivery.css, modules/delivery/tests/stages.test.ts
 - [ ] `T7` — Mock section, README, lint, typecheck, `check:graph` and the full test suites (AC-29, AC-32)
   Files: .specclaw/mock/index.html, modules/delivery/README.md
