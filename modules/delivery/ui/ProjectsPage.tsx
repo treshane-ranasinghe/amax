@@ -4,15 +4,15 @@ import { projectPin } from "../pins";
 import { listProjects } from "../server/queries";
 import { tasksPerWeek } from "../server/weekly";
 import { ART_SPRITE } from "./art";
-import { axisMax, Donut, LineChart } from "./charts";
 import { Avatar } from "./Avatar";
+import { RevenueCard } from "./RevenueCard";
+import { TasksCard } from "./TasksCard";
 import { ClientFilter } from "./ClientFilter";
 import { FilterMenu } from "./FilterMenu";
 import { COLOR, initials, needViewer, shortName, SignInFirst, usd } from "./parts";
 
 const HEALTH: Record<string, [string, string]> = { "on-track": ["good", "On track"], "at-risk": ["bad", "At risk"], "off-track": ["bad", "Off track"] };
 const BILLING: Record<string, string> = { fixed: "fixed price", "t&m": "time and materials", retainer: "retainer", internal: "internal" };
-const HEX: Record<string, string> = { violet: "#7B61FF", amber: "#F2A93B", pink: "#F48B9B", mint: "#2FCB8C" };
 const AVATAR = ["a1", "a3", "a4", "a2"];
 const art = (name: string) => <svg className="art" viewBox="0 0 120 110" aria-hidden="true"><use href={`#art-${name}`} /></svg>;
 const k = (n: number) => `$${Math.round(n / 1000)}k`;
@@ -24,7 +24,8 @@ export async function ProjectsPage({ viewer: raw, searchParams = {} }: ScreenPro
   const viewer = needViewer(raw);
   if (!viewer) return <><h1>Projects</h1><SignInFirst /></>;
   const status = searchParams.status === "closed" ? "closed" : "active";
-  const [all, weekly] = await Promise.all([listProjects(viewer, status), tasksPerWeek(viewer, { status, client: searchParams.client })]);
+  const filter = { status, client: searchParams.client } as const;
+  const [all, weekly] = await Promise.all([listProjects(viewer, status), tasksPerWeek(viewer, filter)]);
   const clients = [...new Set(all.map((p) => p.client))];
   const projects = searchParams.client ? all.filter((p) => p.client === searchParams.client) : all;
   const value = projects.reduce((n, p) => n + (p.contractValue ?? 0), 0);
@@ -34,9 +35,6 @@ export async function ProjectsPage({ viewer: raw, searchParams = {} }: ScreenPro
   const onTrack = projects.find((p) => p.health === "on-track" && version(p.nextRelease));
   const pct = value ? Math.round((invoiced / value) * 100) : 0;
   const shownClients = new Set(projects.map((p) => p.client)).size;
-  const noWeekly = weekly.done.every((d) => !d) && weekly.planned.every((d) => !d);
-  // The axis grows with the data (40 at least, as in the mock), so no week is drawn past the top.
-  const yMax = axisMax([...weekly.planned, ...weekly.done], 40, 10);
   const lede = [
     `${count(projects.length, `${status} project`)} for ${count(shownClients, "client")}.`,
     [atRisk.length ? `${atRisk.map((p) => p.name).join(" and ")} ${atRisk.length > 1 ? "are" : "is"} at risk` : "", onTrack ? `${onTrack.name} is on track for ${version(onTrack.nextRelease)}` : ""].filter(Boolean).join("; "),
@@ -55,17 +53,8 @@ export async function ProjectsPage({ viewer: raw, searchParams = {} }: ScreenPro
         <Ticket tone="problem" label="At risk" value={count(atRisk.length, "project")} note={atRisk.map((p) => `${p.name}${p.riskPct ? `, ${p.riskPct}% risk` : ""}`).join("; ") || "None"} art={art("target")} />
       </div>
       <div className="cols even" style={{ marginBottom: 28 }}>
-        <div className="card pinnable">
-          <div className="card-head"><h2>Tasks done per week</h2><PinButton inline pin={{ label: "Tasks done per week", tool: "list_projects", args: {} }} /><span className="muted" style={{ fontSize: 13 }}>All projects</span></div>
-          {noWeekly ? <p className="muted empty">No weekly task data yet. It appears once task events are ingested.</p> : (
-            <LineChart id="tasksWeek" label="Tasks done per week against plan" labels={weekly.labels} max={yMax} step={10}
-              series={[{ name: "Planned", color: "#C3B5FF", data: weekly.planned, dashed: true }, { name: "Done", color: "#7B61FF", data: weekly.done, area: true }]} />)}
-          <div className="legend"><span><i style={{ background: "var(--violet)" }} />Done</span><span><i style={{ background: "repeating-linear-gradient(90deg,#C3B5FF 0 5px,transparent 5px 9px)" }} />Planned</span></div>
-        </div>
-        <div className="card pinnable">
-          <div className="card-head"><h2>Revenue by project</h2><PinButton inline pin={{ label: "Revenue by project", tool: "list_projects", args: {} }} /><a className="btn sm pillbtn" href="/delivery">View all</a></div>
-          <Donut label="Revenue by project" center={k(value)} sub="contract value" parts={projects.filter((p) => p.contractValue).map((p) => ({ name: p.name, value: p.contractValue!, color: HEX[p.color] ?? "#7B61FF" }))} />
-        </div>
+        <TasksCard weekly={weekly} filter={filter} />
+        <RevenueCard viewer={viewer} projects={projects} client={searchParams.client} />
       </div>
       <div className="card flush pinnable">
         <div className="card-head">

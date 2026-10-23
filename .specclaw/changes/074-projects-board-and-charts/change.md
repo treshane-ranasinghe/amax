@@ -270,7 +270,7 @@ What changes on screen, and where to see it: [`074-projects-board-and-charts`](.
   Files: modules/delivery/db/migrations/0018_tasks_per_week.sql, modules/delivery/server/weekly.ts, modules/delivery/server/queries.ts, modules/delivery/workflows.ts, modules/delivery/mcp.ts, modules/delivery/module.ts, modules/delivery/tests/weekly.test.ts
 - [x] `T2` — Revenue slot: core manifest `slots` and `readSlot`, the web app wiring, Finance's `delivery.revenue-by-project` slot with FX conversion, and `get_revenue_by_project` (AC-7–AC-11)
   Files: packages/core/src/module.ts, packages/core/src/slots.ts, packages/core/src/server.ts, apps/web/lib/server.ts, modules/delivery/contracts.ts, modules/finance/server/revenue.ts, modules/finance/module.ts, modules/finance/mcp.ts, modules/finance/tests/revenue.test.ts
-- [ ] `T3` — Projects page: both charts read live data with their notes, empty and Finance states, pins, and fixtures seeded from real tasks and snapshots (AC-1–AC-10, AC-30, AC-31)
+- [x] `T3` — Projects page: both charts read live data with their notes, empty and Finance states, pins, and fixtures seeded from real tasks and snapshots (AC-1–AC-10, AC-30, AC-31)
   Files: modules/delivery/ui/ProjectsPage.tsx, modules/delivery/fixtures/index.ts, modules/delivery/tests/weekly.test.ts
   Depends: T1, T2
 - [ ] `T4` — Lanes: `delivery.lane` table and `proposal.lane_id`, lane services and MCP tools, the `delivery.add-lane` intent, `move_proposal` with `lane` and a row lock, `create_proposal` with `lane`, lane events and permission (AC-16–AC-22, AC-24)
