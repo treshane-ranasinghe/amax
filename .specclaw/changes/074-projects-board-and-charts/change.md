@@ -275,7 +275,7 @@ What changes on screen, and where to see it: [`074-projects-board-and-charts`](.
   Depends: T1, T2
 - [x] `T4` — Lanes: `delivery.lane` table and `proposal.lane_id`, lane services and MCP tools, the `delivery.add-lane` intent, `move_proposal` with `lane` and a row lock, `create_proposal` with `lane`, lane events and permission (AC-16–AC-22, AC-24)
   Files: modules/delivery/db/migrations/0019_lanes.sql, modules/delivery/server/lanes.ts, modules/delivery/server/services.ts, modules/delivery/server/queries.ts, modules/delivery/contracts.ts, modules/delivery/mcp.ts, modules/delivery/chat.ts, modules/delivery/module.ts, modules/delivery/fixtures/index.ts, modules/delivery/tests/lanes.test.ts
-- [ ] `T5` — Board UI: lanes grouped by phase, drag and drop (pointer, touch, keyboard) opening chat, the pending state with Cancel, Add lane and the lane menu; chat reports each decided card to the page (AC-12–AC-15, AC-23)
+- [x] `T5` — Board UI: lanes grouped by phase, drag and drop (pointer, touch, keyboard) opening chat, the pending state with Cancel, Add lane and the lane menu; chat reports each decided card to the page (AC-12–AC-15, AC-23)
   Files: modules/delivery/ui/ProjectPage.tsx, modules/delivery/ui/Board.tsx, modules/delivery/ui/board.ts, modules/delivery/ui/delivery.css, apps/web/components/chat/Chat.tsx, packages/ui/src/components/PinButton.tsx, modules/delivery/tests/board.test.ts
   Depends: T4
 - [ ] `T6` — Release stage times: stage details in `listReleases`, the station tooltip with focus, tap and Esc, and display names for who recorded it (AC-25–AC-28)

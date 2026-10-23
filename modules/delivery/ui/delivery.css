@@ -200,3 +200,25 @@
 .filtermenu nav a[aria-current="true"]{color:var(--chip-agent);font-weight:600}
 .btn svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8}
 .empty{margin:0;padding:48px 0;text-align:center}
+/* 074: lanes inside a phase, drag handles, a drop waiting on chat's confirm */
+.board.lanes{grid-auto-flow:column}
+.lane-head .lane-count{font-size:12px;font-weight:600;color:var(--ink-3);background:var(--card);border-radius:8px;padding:2px 8px;margin-left:auto}
+.lane-head .phase-of{display:block;font-size:11px;font-weight:600;color:var(--ink-3);margin-right:2px}
+.lane.target{outline:2px dashed var(--violet);outline-offset:-4px}
+.tcard{position:relative}
+.tcard .handle{position:absolute;top:10px;right:76px;width:28px;height:28px;border:0;border-radius:8px;background:transparent;color:var(--ink-3);cursor:grab;touch-action:none;display:grid;place-items:center;padding:0}
+.tcard .handle svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:3;stroke-linecap:round}
+.tcard .handle:hover,.tcard .handle:focus-visible{background:var(--sunken);color:var(--ink)}
+.tcard .handle:focus-visible{outline:2px solid var(--violet);outline-offset:1px}
+.tcard.picked{outline:2px solid var(--violet);transform:rotate(-1deg);transition:transform .15s}
+.tcard.pending{opacity:.75;outline:2px dashed var(--violet)}
+.tcard .pendingnote{margin-top:10px;color:var(--ink-2)}
+.lanemenu{position:relative;margin-left:6px}
+.lanemenu summary{list-style:none;cursor:pointer;padding:0 6px;border-radius:8px;color:var(--ink-3)}
+.lanemenu summary::-webkit-details-marker{display:none}
+.lanemenu summary:focus-visible{outline:2px solid var(--violet)}
+.lanemenu [role=menu]{position:absolute;right:0;top:24px;z-index:10;display:grid;min-width:140px;background:var(--card);border-radius:12px;padding:6px;box-shadow:0 8px 24px rgba(40,30,110,.14)}
+.lanemenu .menuitem{border:0;background:transparent;text-align:left;padding:8px 10px;border-radius:8px;font:inherit;font-size:13px;color:var(--ink);cursor:pointer}
+.lanemenu .menuitem:hover,.lanemenu .menuitem:focus-visible{background:var(--sunken)}
+.lane .addlane{width:100%;justify-content:center;border:1.5px dashed var(--line-2);background:transparent}
+@media (prefers-reduced-motion:reduce){.tcard.picked{transform:none;transition:none}}

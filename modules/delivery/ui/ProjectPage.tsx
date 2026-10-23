@@ -1,15 +1,14 @@
 import { can } from "@amax/auth";
 import type { ScreenProps } from "@amax/core";
-import { IntentButton, PinButton } from "@amax/ui";
-import { PHASES, type Phase } from "../contracts";
-import { proposalPin } from "../pins";
-import { getProject, listEnvironments, type ProposalRow } from "../server/queries";
-import { AskButton } from "./AskButton";
-import { Avatar } from "./Avatar";
+import { IntentButton } from "@amax/ui";
+import { boardLanes } from "../server/board";
+import { LANE_LABEL } from "../server/lane-of";
+import { getProject, listEnvironments } from "../server/queries";
+import { Board } from "./Board";
 import { EnvironmentsCard } from "./EnvironmentsCard";
 import { getRepoSync } from "../server/repo-sync";
 import { RepoSyncCard } from "./RepoSyncCard";
-import { initials, needViewer, SignInFirst, Stk } from "./parts";
+import { needViewer, SignInFirst } from "./parts";
 import { ProjectTabs } from "./ProjectSections";
 
 const D = (iso: string, opts: Intl.DateTimeFormatOptions) => new Date(`${iso}T12:00:00Z`).toLocaleDateString("en-US", { ...opts, timeZone: "UTC" });
@@ -21,56 +20,12 @@ function sprintLine(p: { sprint: string | null; sprintStart: string | null; spri
   return `${p.sprint}${when}. ${done} of ${total} tasks done${v ? `, ${p.health === "on-track" ? "on track" : "at risk"} for ${v}` : ""}. `;
 }
 
-const LANE_LABEL: Record<Phase, string> = { proposed: "Proposed", planned: "Planned", building: "Building", verified: "Verified", released: "Released to Prod" };
-
-// Facts the specclaw sync adds (039): lane, queue status, claim, PR.
-function SpecFacts({ p }: { p: ProposalRow }) {
-  const m = p.meta as { lane?: string; status?: string; waiting?: string[]; claim?: string | null; pr?: string | null; withdrawn?: boolean };
-  const status = m.withdrawn ? "withdrawn" : m.status === "blocked" ? `blocked on ${m.waiting?.join(", ")}` : m.status === "claimed" ? `claimed by ${m.claim}` : m.status === "ready" ? "ready" : null;
-  return (
-    <div className="foot" style={{ marginTop: 8 }}>
-      {m.lane && <span className="chip">{m.lane}</span>}
-      {status && status !== "done" && <span className={`chip ${m.status === "ready" ? "good" : m.status === "claimed" ? "agent" : "warn"}`}>{status}</span>}
-      {m.pr && <a href={m.pr} rel="noreferrer">PR {m.pr.split("/").at(-1)}</a>}
-    </div>
-  );
-}
-
-function Card({ p, canMove }: { p: ProposalRow; canMove: boolean }) {
-  const pct = p.tasksTotal ? Math.round((p.tasksDone / p.tasksTotal) * 100) : 0;
-  const done = p.phase === "verified" || p.phase === "released";
-  const pin = proposalPin(p);
-  return (
-    <div className="tcard pinnable">
-      <PinButton pin={pin} />
-      <div className="id">{p.key}</div>
-      <p>{p.title}</p>
-      {p.phase !== "proposed" && p.phase !== "released" && <div className="prog"><i style={{ width: `${pct}%`, ...(done ? { background: "var(--mint)" } : {}) }} /></div>}
-      <div className="foot">
-        {p.phase === "released" ? <span className="chip">{p.release ?? "Released"}</span>
-          : p.agent ? <span className="chip agent">{p.agent}</span> : <Avatar initials={initials(p.ownerName)} name={p.ownerName} />}
-        <span>
-          {p.phase === "proposed" && (p.estimateHours !== null ? `est. ${p.estimateHours} h` : `${p.hours} h`)}
-          {(p.phase === "planned" || p.phase === "building") && `${p.tasksDone} of ${p.tasksTotal}${p.phase === "building" ? `, ${p.hours} h` : " tasks"}`}
-          {p.phase === "verified" && p.source !== "specclaw" && <span className="chip">{p.release ?? "No release"}{p.shippedTo ? `, in ${p.shippedTo}` : ""}</span>}
-          {p.phase === "verified" && p.source === "specclaw" && `${p.tasksDone} of ${p.tasksTotal} tasks`}
-          {p.phase === "released" && <span className="chip good">In Prod</span>}
-        </span>
-      </div>
-      {p.source === "specclaw" && <SpecFacts p={p} />}
-      {canMove && p.phase !== "released" && p.source !== "specclaw" && (
-        <span className="cardmenu"><AskButton label="Move" name={`Move ${p.key}`} prompt={`Move ${p.key} to `} pin={pin} /></span>
-      )}
-    </div>
-  );
-}
-
 export async function ProjectPage({ viewer: raw, params }: ScreenProps) {
   const viewer = needViewer(raw);
   if (!viewer) return <><h1>Project</h1><SignInFirst /></>;
   const data = await getProject(viewer, params.key);
   if (!data) return <><h1>Project not found</h1><p className="lede">No project with the key {params.key}.</p></>;
-  const { project, proposals } = data;
+  const { project, proposals, lanes } = data;
   const canMove = can(viewer, "delivery:proposal:move", { projectId: project.id });
   const envs = await listEnvironments(viewer, project.key);
   const sync = await getRepoSync(viewer, { projectId: project.id });
@@ -92,17 +47,7 @@ export async function ProjectPage({ viewer: raw, params }: ScreenProps) {
         </div>
       </div>
       <ProjectTabs projectKey={project.key} current="" />
-      <div className="board">
-        {PHASES.map((phase) => {
-          const cards = proposals.filter((p) => p.phase === phase);
-          return (
-            <section className="lane" key={phase} aria-label={`${LANE_LABEL[phase]}, ${cards.length}`}>
-              <div className="lane-head"><span className="lh"><Stk phase={phase} />{LANE_LABEL[phase]}</span> <span>{cards.length}</span></div>
-              {cards.map((p) => <Card key={p.id} p={p} canMove={canMove} />)}
-            </section>
-          );
-        })}
-      </div>
+      <Board projectKey={project.key} lanes={boardLanes(lanes, proposals)} labels={LANE_LABEL} canMove={canMove} canEdit={can(viewer, "delivery:board:edit", { projectId: project.id })} />
       {sync && <RepoSyncCard projectKey={project.key} projectId={project.id} repoUrl={sync.repoUrl} last={sync.lastApplied} recent={sync.recent} canLink={can(viewer, "delivery:project:link", { projectId: project.id })} />}
       <EnvironmentsCard projectKey={project.key} envs={envs} canEdit={can(viewer, "delivery:release:create", { projectId: project.id })} />
     </>

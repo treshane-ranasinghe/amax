@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from "react";
 import { useRouter } from "next/navigation";
-import { announce, Mascot, PinButton, type PinRef } from "@amax/ui";
+import { announce, chatDecided, Mascot, PinButton, type PinRef } from "@amax/ui";
 import type { Conversation, ConversationSummary, Highlight, PendingAction } from "@amax/chat";
 import { cancelChat, confirmChat, refreshPins, sendChat, type CardOutcome } from "../../app/actions/chat";
 import { pinKey, withFresh, type Pin } from "@amax/chat/pins";
@@ -204,6 +204,7 @@ export function Chat({ open, onClose, returnFocus, signedIn, voice, usage = null
       const o = ok ? await confirmChat(convo.current, action.id) : await cancelChat(convo.current, action.id);
       apply(o);
       announce(o.note);
+      chatDecided({ tool: action.tool, input: action.input, state: o.state });
       // The record this page shows was renamed (a re-tag): follow it, or the page would read "not found".
       // A client-side replace keeps this conversation open on the new page.
       const to = followMove(window.location.pathname, o.moved);

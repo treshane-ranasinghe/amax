@@ -8,6 +8,15 @@ export type { PinRef };
 
 export const openChat = (detail: { pin?: PinRef; intent?: string; prompt?: string }) => window.dispatchEvent(new CustomEvent("amax:chat", { detail }));
 
+// 074: chat says when a confirm card was decided, so a screen waiting on it (a dragged card) can settle.
+export type ChatDecided = { tool: string; input: Record<string, unknown>; state: string };
+export const chatDecided = (detail: ChatDecided) => window.dispatchEvent(new CustomEvent("amax:chat-decided", { detail }));
+export function onChatDecided(fn: (d: ChatDecided) => void) {
+  const on = (e: Event) => fn((e as CustomEvent<ChatDecided>).detail);
+  window.addEventListener("amax:chat-decided", on);
+  return () => window.removeEventListener("amax:chat-decided", on);
+}
+
 export function PinButton({ pin, inline }: { pin: PinRef; inline?: boolean }) {
   return (
     <button type="button" className={inline ? "pin inline" : "pin"} aria-label={`Add ${pin.label} to chat`} data-pin={JSON.stringify(pin)}
