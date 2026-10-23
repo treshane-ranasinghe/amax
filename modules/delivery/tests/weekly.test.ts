@@ -1,40 +1,28 @@
 import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { withTenant, type Db } from "@amax/db";
-import { hasDb, migratedDatabase } from "@amax/db/testdb";
-import { configureRuntime, contextFor } from "@amax/core/server";
-import { applyViewAs, installAuthorizer, setGrants, setViewerScopeResolvers, viewerForUser, type Viewer } from "@amax/auth";
-import { authFixtures } from "@amax/auth/fixtures";
-import { loadFixtures, lumen } from "@amax/testing";
-import manifest from "../module";
+import { hasDb } from "@amax/db/testdb";
+import { contextFor } from "@amax/core/server";
+import type { Viewer } from "@amax/auth";
 import { mcpTools } from "../mcp";
 import { snapshotWeek } from "../server/snapshot";
 import { tasksPerWeek } from "../server/weekly";
+import { deliveryDb, T } from "./db";
 
-const T = lumen.tenant.id;
 const NOW = new Date("2026-10-16T15:00:00Z");
 const OPEN = (monday: string) => sql`select count(*)::int as n from delivery.task t join delivery.proposal p on p.id = t.proposal_id
   where p.phase in ('planned', 'building') and coalesce(p.meta->>'withdrawn', 'false') <> 'true' and (not t.done or t.done_at >= ${monday})`;
 
 describe.skipIf(!hasDb)("074 tasks per week (Postgres)", () => {
-  let t: Awaited<ReturnType<typeof migratedDatabase>>;
-  let app: Db;
+  let db: Awaited<ReturnType<typeof deliveryDb>>;
   let maya: Viewer;
-  const q = (s: ReturnType<typeof sql>) => withTenant(app, T, (tx) => tx.execute(s));
+  const q = (x: ReturnType<typeof sql>) => db.q(x);
   const sum = (rows: Record<string, unknown>[], k: string) => rows.reduce((n, r) => n + Number(r[k]), 0);
 
   beforeAll(async () => {
-    t = await migratedDatabase();
-    app = t.app();
-    configureRuntime({ db: app, auditKey: "k".repeat(32) });
-    setGrants([manifest]);
-    setViewerScopeResolvers([manifest.viewerScopes!]);
-    installAuthorizer();
-    await loadFixtures(app, [{ id: "auth", fixtures: [authFixtures] }, manifest], lumen);
-    const [u] = await q(sql`select id from auth.user where email = 'maya@lumenlabs.test'`);
-    maya = applyViewAs((await withTenant(app, T, (tx) => viewerForUser(tx, T, u.id as string)))!, "PM");
+    db = await deliveryDb();
+    maya = await db.as("maya", "PM");
   });
-  afterAll(() => t?.drop());
+  afterAll(() => db?.t.drop());
 
   it("AC-1 a task closed this week counts at once, and a withdrawn proposal's never do", async () => {
     const before = (await tasksPerWeek(maya, {}, NOW)).done.at(-1)!;

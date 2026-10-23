@@ -3,7 +3,8 @@ import { z } from "zod";
 import { textArray, uuidArray, type Tx } from "@amax/db";
 import { assertCan, viewerOf } from "@amax/auth";
 import { appendAudit, defineService, type Emitted, type ServiceContext } from "@amax/core/server";
-import { EVENTS, PHASES, releaseHref, type Phase, type ProposalPhaseChanged, type ProposalRekeyed, type ReleaseDeployed } from "../contracts";
+import { EVENTS, PHASES, releaseHref, type Phase, type ProposalLaneChanged, type ProposalPhaseChanged, type ProposalRekeyed, type ReleaseDeployed } from "../contracts";
+import { BOARD_PHASES, LANE_LABEL, laneOf } from "./lane-of";
 import { ensureEnvironments } from "./project-create";
 import { TaskInput, writeTasks } from "./tasks";
 
@@ -57,6 +58,11 @@ const phaseEvent = (p: Record<string, unknown>, to: Phase, ctx: ServiceContext):
   payload: { proposalId: p.id as string, key: p.key as string, projectId: p.project_id as string, from: p.phase as Phase, to, by: by(ctx) } satisfies ProposalPhaseChanged,
 });
 
+const laneEvent = (p: Record<string, unknown>, from: string, to: string, ctx: ServiceContext): Emitted => ({
+  name: EVENTS.proposalLaneChanged,
+  payload: { proposalId: p.id as string, key: p.key as string, projectId: p.project_id as string, phase: p.phase as Phase, from, to, by: by(ctx) } satisfies ProposalLaneChanged,
+});
+
 export { createProjectService as createProject } from "./project-create";
 
 /**
@@ -76,42 +82,49 @@ export const createProposal = defineService({
   name: "delivery.proposal.create",
   action: "delivery:proposal:create",
   resource: "delivery.proposal",
-  input: z.object({ projectKey: z.string(), title: z.string().min(1), estimateHours: z.number().nonnegative().optional(), ownerName: z.string().optional() }),
+  input: z.object({ projectKey: z.string(), title: z.string().min(1), estimateHours: z.number().nonnegative().optional(), ownerName: z.string().optional(), lane: z.string().optional() }),
   async run(tx, input, ctx) {
     const project = await projectByKey(tx, input.projectKey);
     scoped(ctx, "delivery:proposal:create", project.id as string);
     // Next key in the project: CON-018 after CON-017. The project row lock serialises concurrent
     // creates, so two of them can't compute the same key (review round 1, B7).
     await tx.execute(sql`select 1 from delivery.project where id = ${project.id} for update`);
+    // 074 AC-22: it starts in Proposed unless a lane before Released is named.
+    const lane = input.lane ? await laneOf(tx, project.id, input.lane) : { phase: "proposed" as const, laneId: null, name: "Proposed" };
     const key = await nextHandKey(tx, project.id as string, project.key as string);
-    const [p] = await tx.execute(sql`insert into delivery.proposal (tenant_id, project_id, key, title, estimate_hours, owner_name)
-      values (${ctx.tenantId}, ${project.id}, ${key}, ${input.title}, ${input.estimateHours ?? null}, ${input.ownerName ?? null}) returning id`);
-    return { result: { id: p.id as string, key }, resourceId: p.id as string, after: { key, ...input } };
+    const [p] = await tx.execute(sql`insert into delivery.proposal (tenant_id, project_id, key, title, estimate_hours, owner_name, phase, lane_id)
+      values (${ctx.tenantId}, ${project.id}, ${key}, ${input.title}, ${input.estimateHours ?? null}, ${input.ownerName ?? null}, ${lane.phase}, ${lane.laneId}) returning id`);
+    return { result: { id: p.id as string, key, lane: lane.name }, resourceId: p.id as string, after: { key, ...input, phase: lane.phase } };
   },
 });
 
 // The board's explicit Move action. Released is reached only through a Prod deployment. A proposal
-// synced from a repo takes its phase from the repo, its one owner before Released (044 AC-2).
+// synced from a repo takes its phase from the repo, its one owner before Released (044 AC-2), so it
+// moves only between lanes of the phase it's in (074 AC-14, AC-16).
 export const moveProposal = defineService({
   scoped: true,
   name: "delivery.proposal.move",
   action: "delivery:proposal:move",
   resource: "delivery.proposal",
-  input: z.object({ key: z.string(), to: z.enum(PHASES.filter((p) => p !== "released") as [Phase, ...Phase[]]) }),
+  input: z.object({ key: z.string(), to: z.enum(BOARD_PHASES as [Phase, ...Phase[]]).optional(), lane: z.string().optional() }).refine((a) => a.to || a.lane, "say where to: a phase (to) or a lane"),
   async run(tx, input, ctx) {
-    const [p] = await tx.execute(sql`select * from delivery.proposal where key = ${input.key}`);
+    // Locked, so two moves of one card apply in turn (074 AC-17, the 042 follow-up).
+    const [p] = await tx.execute(sql`select * from delivery.proposal where key = ${input.key} for update`);
     if (!p) throw new Error(`no proposal ${input.key}`);
     scoped(ctx, "delivery:proposal:move", p.project_id as string);
     if (p.phase === "released") throw new Error(`${input.key} is in Prod; it can't move back on the board`);
-    if (p.source !== null) throw new Error(`${input.key} comes from ${p.source}; its phase follows the repo, so move it there`);
-    if (p.phase === input.to) return { result: { key: input.key, phase: input.to }, resourceId: p.id as string };
-    await tx.execute(sql`update delivery.proposal set phase = ${input.to}, updated_at = now() where id = ${p.id}`);
+    const lane = await laneOf(tx, p.project_id, input.lane ?? input.to!);
+    if (input.to && lane.phase !== input.to) throw new Error(`${lane.name} is a lane of ${LANE_LABEL[lane.phase]}, not ${LANE_LABEL[input.to]}`);
+    if (p.source !== null && lane.phase !== p.phase) throw new Error(`${input.key} comes from ${p.source}; its phase follows the repo, so move it there`);
+    if (p.phase === lane.phase && (p.lane_id ?? null) === lane.laneId) return { result: { key: input.key, phase: lane.phase, lane: lane.name }, resourceId: p.id as string };
+    await tx.execute(sql`update delivery.proposal set phase = ${lane.phase}, lane_id = ${lane.laneId}, updated_at = now() where id = ${p.id}`);
+    const before = p.lane_id ? (await tx.execute(sql`select name from delivery.lane where id = ${p.lane_id}`))[0]?.name as string : LANE_LABEL[p.phase as Phase];
     return {
-      result: { key: input.key, phase: input.to },
+      result: { key: input.key, phase: lane.phase, lane: lane.name },
       resourceId: p.id as string,
-      before: { phase: p.phase },
-      after: { phase: input.to },
-      events: [phaseEvent(p, input.to, ctx)],
+      before: { phase: p.phase, lane: before },
+      after: { phase: lane.phase, lane: lane.name },
+      events: [p.phase !== lane.phase ? phaseEvent(p, lane.phase, ctx) : laneEvent(p, before, lane.name, ctx)],
     };
   },
 });

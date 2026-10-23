@@ -5,7 +5,7 @@ import { mcpTools, search } from "./mcp";
 import { listActivity } from "./server/activity";
 import { ingestPush } from "./server/ingest";
 import { linkIdentity } from "./suggestions";
-import { EVENTS, managedProjectIds, type ProposalPhaseChanged, type ProposalRekeyed, type ReleaseDeployed, type TaskDone, type CommitTime } from "./contracts";
+import { EVENTS, managedProjectIds, type ProposalPhaseChanged, type ProposalLaneChanged, type ProposalRekeyed, type ReleaseDeployed, type TaskDone, type CommitTime } from "./contracts";
 import { ProjectsPage } from "./ui/ProjectsPage";
 import { ProjectPage } from "./ui/ProjectPage";
 import { ProposalsPage } from "./ui/ProposalsPage";
@@ -28,12 +28,12 @@ export default defineModule({
   nav: [{ path: "proposals", title: "Proposals", icon: "doc" }, { path: "releases", title: "Releases", icon: "rocket" }],
   dependsOn: [],
   integratesWith: [],
-  permissions: ["delivery:read", "delivery:project:create", "delivery:proposal:create", "delivery:proposal:move", "delivery:release:create", "delivery:deployment:record", "delivery:proposal:sync", "delivery:task:done", "delivery:identity:link", "delivery:commit-time:manage", "delivery:project:link", "delivery:proposal:push", "delivery:weekly:snapshot"],
+  permissions: ["delivery:read", "delivery:project:create", "delivery:proposal:create", "delivery:proposal:move", "delivery:release:create", "delivery:deployment:record", "delivery:proposal:sync", "delivery:task:done", "delivery:identity:link", "delivery:commit-time:manage", "delivery:project:link", "delivery:proposal:push", "delivery:weekly:snapshot", "delivery:board:edit"],
   grants: {
     Leadership: READ,
     Finance: READ,
     Engineer: [...READ, "delivery:proposal:create@assigned", "delivery:proposal:move@assigned", "delivery:task:done@assigned", "delivery:proposal:push@assigned"],
-    PM: [...READ, "delivery:project:create", "delivery:proposal:create", "delivery:proposal:move@managed", "delivery:release:create@managed", "delivery:deployment:record@managed", "delivery:task:done@managed", "delivery:proposal:push@managed", "delivery:project:link@managed"],
+    PM: [...READ, "delivery:project:create", "delivery:proposal:create", "delivery:proposal:move@managed", "delivery:release:create@managed", "delivery:deployment:record@managed", "delivery:task:done@managed", "delivery:proposal:push@managed", "delivery:project:link@managed", "delivery:board:edit@managed"],
   },
   routes: [
     { path: "", title: "Projects", component: ProjectsPage },
@@ -87,6 +87,7 @@ export default defineModule({
       [EVENTS.releaseDeployed]: declarePayload<ReleaseDeployed>({ releaseId: "plain", projectId: "plain", version: "plain", environment: "plain", status: "plain", released: "plain" }),
       [EVENTS.proposalPhaseChanged]: declarePayload<ProposalPhaseChanged>({ proposalId: "plain", key: "plain", projectId: "plain", from: "plain", to: "plain", by: "plain" }),
       [EVENTS.proposalRekeyed]: declarePayload<ProposalRekeyed>({ proposalId: "plain", projectId: "plain", from: "plain", to: "plain" }),
+      [EVENTS.proposalLaneChanged]: declarePayload<ProposalLaneChanged>({ proposalId: "plain", key: "plain", projectId: "plain", phase: "plain", from: "plain", to: "plain", by: "plain" }),
       [EVENTS.taskDone]: declarePayload<TaskDone>({ proposalId: "plain", key: "plain", task: "plain", projectId: "plain", by: "plain" }),
       [EVENTS.commitTime]: declarePayload<CommitTime>({ userId: "plain", projectId: "plain", projectKey: "plain", proposalKey: "plain", day: "plain", hours: "plain", commit: "plain" }),
     },

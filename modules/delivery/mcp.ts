@@ -12,6 +12,7 @@ import { getRepoSync, getSyncPush, linkProjectRepo } from "./server/repo-sync";
 import { PushInput, pushSpecclaw } from "./server/push";
 import { RepoUrl } from "./sync/repo-url";
 import { tasksPerWeek } from "./server/weekly";
+import { laneTools } from "./mcp-lanes";
 import { checkReleaseRef, getDeployment, getEnvironment, getProject, getProposal, getRelease, isRelease, listEnvironments, listProjects, listProposals, listReleases } from "./server/queries";
 import { createProject, createProposal, createRelease, moveProposal, recordDeployment, removeEnvironment, setReleaseProposals, tagRelease, upsertEnvironment, voidDeployment } from "./server/services";
 
@@ -49,12 +50,13 @@ export const mcpTools: McpToolDef[] = [
   tool({ name: "create_project", description: "Create a project. Key: 2-10 capitals, e.g. CON.", scope: "write", permission: "delivery:project:create",
     input: z.object({ key: z.string(), name: z.string(), client: z.string(), billing: z.enum(["fixed", "t&m", "retainer", "internal"]) }),
     service: createProject, run: (v, a, s = "mcp") => createProject(ctxFor(v, s), a) }),
-  tool({ name: "create_proposal", description: "Add a proposal to a project's board (it starts as Proposed).", scope: "write", permission: "delivery:proposal:create",
-    input: z.object({ projectKey: z.string(), title: z.string(), estimateHours: z.number().nonnegative().optional() }),
+  tool({ name: "create_proposal", description: "Add a proposal to a project's board. It starts in Proposed unless lane names another lane before Released: a phase (Planned, Building, Verified) or one of the board's own lanes such as Code review.", scope: "write", permission: "delivery:proposal:create",
+    input: z.object({ projectKey: z.string(), title: z.string(), estimateHours: z.number().nonnegative().optional(), lane: z.string().optional() }),
     service: createProposal, run: (v, a, s = "mcp") => createProposal(ctxFor(v, s), a) }),
-  tool({ name: "move_proposal", description: "Move a proposal on the board (proposed, planned, building, verified). Released only comes from a Prod deployment.", scope: "write",
-    permission: "delivery:proposal:move", input: z.object({ key: z.string(), to: z.enum(["proposed", "planned", "building", "verified"]) }),
+  tool({ name: "move_proposal", description: "Move a proposal on the board: to a phase (proposed, planned, building, verified), to one of the board's own lanes by name (lane, e.g. Code review), or both. Released only comes from a Prod deployment; a proposal synced from a repo moves only between lanes of its phase.", scope: "write",
+    permission: "delivery:proposal:move", input: z.object({ key: z.string(), to: z.enum(["proposed", "planned", "building", "verified"]).optional(), lane: z.string().optional() }),
     service: moveProposal, run: (v, a, s = "mcp") => moveProposal(ctxFor(v, s), a) }),
+  ...laneTools,
   tool({ name: "create_release", description: "Create a release (version tag) for a project, optionally with proposal keys.", scope: "write", permission: "delivery:release:create",
     input: z.object({ projectKey: z.string(), version: z.string(), proposalKeys: z.array(z.string()).optional() }),
     service: createRelease, run: (v, a, s = "mcp") => createRelease(ctxFor(v, s), { ...a, proposalKeys: a.proposalKeys ?? [] }) }),

@@ -162,6 +162,10 @@ export const deliveryFixtures: FixtureSeed = async ({ tx, tenantId, shared }) =>
       values (${tenantId}, ${ids.CON}, ${p.at}, ${p.who ? `user:${p.who}` : "user:fixture"}, 'user', ${p.repo}, 'main', ${p.sha}, ${p.at}, ${p.outcome}, ${p.updated}, ${p.unchanged}, ${p.reason})`);
   }
   await seedWeekly(tx, tenantId, ids);
+  // 074 AC-31: Contoso's own "Code review" lane in Building, holding CON-011.
+  const [lane] = await tx.execute(sql`insert into delivery.lane (tenant_id, project_id, phase, name, position) values (${tenantId}, ${ids.CON}, 'building', 'Code review', 1)
+    on conflict do nothing returning id`);
+  if (lane) await tx.execute(sql`update delivery.proposal set lane_id = ${lane.id} where key = 'CON-011' and project_id = ${ids.CON}`);
 };
 
 /**

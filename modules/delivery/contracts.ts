@@ -19,7 +19,10 @@ export type ProposalPhaseChanged = { proposalId: string; key: string; projectId:
 /** A proposal made by hand moved to the hand-made series because a spec change owns its old key. */
 export type ProposalRekeyed = { proposalId: string; projectId: string; from: string; to: string };
 
-export const EVENTS = { releaseDeployed: "delivery.release.deployed", proposalPhaseChanged: "delivery.proposal.phase_changed", proposalRekeyed: "delivery.proposal.rekeyed", taskDone: "delivery.task.done", commitTime: "delivery.commit.time" } as const;
+/** 074: a card moved between lanes of the same phase ("Building" to "Code review"); a phase change emits ProposalPhaseChanged instead. */
+export type ProposalLaneChanged = { proposalId: string; key: string; projectId: string; phase: Phase; from: string; to: string; by: string };
+
+export const EVENTS = { releaseDeployed: "delivery.release.deployed", proposalPhaseChanged: "delivery.proposal.phase_changed", proposalRekeyed: "delivery.proposal.rekeyed", taskDone: "delivery.task.done", commitTime: "delivery.commit.time", proposalLaneChanged: "delivery.proposal.lane_changed" } as const;
 
 /**
  * 008 AC-3: hours a person's commit says they spent, for the time module to draft on their timesheet as a

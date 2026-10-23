@@ -36,6 +36,8 @@ export type ProposalRow = {
   id: string; key: string; title: string; phase: Phase; tasksDone: number; tasksTotal: number; hours: number; estimateHours: number | null;
   ownerName: string | null; agent: string | null; projectKey: string; projectName: string; projectColor: string;
   release: string | null; shippedTo: string | null; shippedStatus: string | null; source: string | null; meta: Record<string, unknown>; createdAt: string | null;
+  /** 074: the project's own lane the card sits in; null is its phase's default lane. */
+  lane: string | null;
 };
 
 const proposal = (r: Record<string, unknown>): ProposalRow => ({
@@ -44,13 +46,15 @@ const proposal = (r: Record<string, unknown>): ProposalRow => ({
   projectKey: r.project_key as string, projectName: r.project_name as string, projectColor: r.project_color as string,
   release: (r.version as string | null) ?? null, shippedTo: (r.shipped_to as string | null) ?? null, shippedStatus: (r.shipped_status as string | null) ?? null,
   source: (r.source as string | null) ?? null, meta: (r.meta as Record<string, unknown>) ?? {}, createdAt: iso(r.created_at),
+  lane: (r.lane_name as string | null) ?? null,
 });
 
 // The furthest environment each release reached, for "Shipped to".
 const PROPOSALS = sql`
-  select p.*, pr.key as project_key, pr.name as project_name, pr.color as project_color, r.version, last.name as shipped_to, last.status as shipped_status
+  select p.*, pr.key as project_key, pr.name as project_name, pr.color as project_color, r.version, last.name as shipped_to, last.status as shipped_status, ln.name as lane_name
   from delivery.proposal p
   join delivery.project pr on pr.id = p.project_id
+  left join delivery.lane ln on ln.id = p.lane_id
   left join delivery.release r on r.id = p.release_id
   left join lateral (
     select e.name, d.status from delivery.deployment d join delivery.environment e on e.id = d.environment_id
@@ -74,8 +78,14 @@ export const getProject = (v: Viewer, key: string | undefined, projectId?: strin
     const [r] = await tx.execute(sql`select * from delivery.project where ${where}`);
     if (!r) return null;
     const proposals = (await tx.execute(sql`${PROPOSALS} where pr.id = ${r.id} and ${ACTIVE} order by p.updated_at desc, p.key desc`)).map(proposal);
-    return { project: project(r), proposals };
+    return { project: project(r), proposals, lanes: await lanesOf(tx, r.id as string) };
   });
+
+/** 074: the project's own lanes, in board order within each phase (default lanes are the phases themselves). */
+export type LaneRow = { id: string; phase: Phase; name: string; position: number };
+const lanesOf = async (tx: Tx, projectId: string): Promise<LaneRow[]> =>
+  (await tx.execute(sql`select id, phase, name, position from delivery.lane where project_id = ${projectId} order by phase, position`))
+    .map((l) => ({ id: l.id as string, phase: l.phase as Phase, name: l.name as string, position: Number(l.position) }));
 
 /**
  * "Today" for a tenant's date windows: its delivery.clock_pin row (a validated date; the visual tests

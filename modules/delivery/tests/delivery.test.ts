@@ -22,7 +22,7 @@ const T = lumen.tenant.id;
 describe("AC-5 contract shape", () => {
   it("exports phases and event names", () => {
     expect(PHASES).toEqual(["proposed", "planned", "building", "verified", "released"]);
-    expect(EVENTS).toEqual({ releaseDeployed: "delivery.release.deployed", proposalPhaseChanged: "delivery.proposal.phase_changed", proposalRekeyed: "delivery.proposal.rekeyed", taskDone: "delivery.task.done", commitTime: "delivery.commit.time" });
+    expect(EVENTS).toEqual({ releaseDeployed: "delivery.release.deployed", proposalPhaseChanged: "delivery.proposal.phase_changed", proposalRekeyed: "delivery.proposal.rekeyed", taskDone: "delivery.task.done", commitTime: "delivery.commit.time", proposalLaneChanged: "delivery.proposal.lane_changed" });
     expect(manifest.events?.emits).toEqual(Object.values(EVENTS));
   });
   it("AC-4 declares the five MCP tools and three chat intents", () => {
